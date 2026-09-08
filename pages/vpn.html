@@ -179,29 +179,62 @@
 
       <!-- SSH TUNNEL -->
       <section class="content-section" data-section="ssh-tunnel" id="ssh-tunnel">
-        <h2 class="sect-title"><span class="sect-icon">🚇</span> SSH Tunneling</h2>
-        <p class="body-text">SSH tunnels are the quickest way to forward ports and encrypt traffic without a full VPN setup.</p>
+        <h2 class="sect-title"><span class="sect-icon">🚇</span> SSH Tunneling Architectures</h2>
+        <p class="body-text">SSH tunnels are the fastest, zero-install way to forward ports, encrypt insecure legacy protocols, and bypass restrictive firewalls using an existing SSH shell session.</p>
+
+        <!-- Visual Architecture Diagram -->
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 740 180" style="max-width:100%;height:auto;font-family:var(--font-mono);font-size:12px;">
+            <!-- Client Box -->
+            <rect x="20" y="30" width="160" height="120" rx="8" fill="#080f22" stroke="#00e5ff" stroke-width="1.5" />
+            <text x="100" y="60" fill="#00e5ff" text-anchor="middle" font-weight="bold">Local Client</text>
+            <text x="100" y="85" fill="#8a9bc5" text-anchor="middle" font-size="11">App (localhost:8080)</text>
+            <text x="100" y="115" fill="#ffd32a" text-anchor="middle" font-size="10">ssh -L 8080:db:3306</text>
+
+            <!-- Encrypted Tunnel Line -->
+            <path d="M 180 90 L 360 90" stroke="#9b59ff" stroke-width="3" stroke-dasharray="6,4" />
+            <circle cx="270" cy="90" r="14" fill="#050b18" stroke="#9b59ff" />
+            <text x="270" y="94" fill="#9b59ff" text-anchor="middle" font-size="10">🔒 TLS</text>
+            <text x="270" y="125" fill="#8a9bc5" text-anchor="middle" font-size="10">Port 22 SSH Stream</text>
+
+            <!-- Jump / Remote Server -->
+            <rect x="360" y="30" width="160" height="120" rx="8" fill="#080f22" stroke="#3d8bff" stroke-width="1.5" />
+            <text x="440" y="60" fill="#3d8bff" text-anchor="middle" font-weight="bold">SSH Bastion Server</text>
+            <text x="440" y="85" fill="#8a9bc5" text-anchor="middle" font-size="11">sshd listener (:22)</text>
+            <text x="440" y="115" fill="#00ffa3" text-anchor="middle" font-size="10">Gateway / Jump Host</text>
+
+            <!-- Unencrypted LAN link to Internal Target -->
+            <path d="M 520 90 L 590 90" stroke="#00ffa3" stroke-width="2" />
+            <polygon points="590,90 580,85 580,95" fill="#00ffa3" />
+
+            <!-- Target Internal Resource -->
+            <rect x="590" y="45" width="130" height="90" rx="6" fill="#040914" stroke="#00ffa3" stroke-width="1.5" />
+            <text x="655" y="75" fill="#00ffa3" text-anchor="middle" font-weight="bold">Internal DB</text>
+            <text x="655" y="95" fill="#8a9bc5" text-anchor="middle" font-size="11">MySQL :3306</text>
+            <text x="655" y="115" fill="#ff5757" text-anchor="middle" font-size="9">Private Network</text>
+          </svg>
+        </div>
 
         <div class="cmd-grid">
           <div class="cmd-card">
             <div class="cmd-card-title">Local Port Forwarding (-L)</div>
-            <div class="cmd-card-desc">Forward local port to a remote host/port</div>
-            <div class="cmd-card-syntax">ssh -L 8080:remote-host:80 user@jump-server</div>
+            <div class="cmd-card-desc">Forward local client port to remote internal target via SSH bastion</div>
+            <div class="cmd-card-syntax">ssh -L 8080:internal-db:3306 user@bastion-host</div>
           </div>
           <div class="cmd-card">
             <div class="cmd-card-title">Remote Port Forwarding (-R)</div>
-            <div class="cmd-card-desc">Expose a local port on the remote server</div>
-            <div class="cmd-card-syntax">ssh -R 9000:localhost:3000 user@server</div>
+            <div class="cmd-card-desc">Expose a local port on the remote public server (reverse proxy)</div>
+            <div class="cmd-card-syntax">ssh -R 9000:localhost:3000 user@cloud-vps</div>
           </div>
           <div class="cmd-card">
-            <div class="cmd-card-title">Dynamic Forwarding (-D)</div>
-            <div class="cmd-card-desc">Create SOCKS5 proxy through SSH server</div>
-            <div class="cmd-card-syntax">ssh -D 1080 user@server</div>
+            <div class="cmd-card-title">Dynamic SOCKS5 Proxy (-D)</div>
+            <div class="cmd-card-desc">Create a dynamic encrypted SOCKS5 proxy for browser &amp; curl</div>
+            <div class="cmd-card-syntax">ssh -D 1080 -f -N user@remote-gateway</div>
           </div>
           <div class="cmd-card">
-            <div class="cmd-card-title">Keep-alive tunnel</div>
-            <div class="cmd-card-desc">Persistent background tunnel</div>
-            <div class="cmd-card-syntax">ssh -fNL 5432:db-server:5432 user@jump</div>
+            <div class="cmd-card-title">Persistent Daemon Tunnel</div>
+            <div class="cmd-card-desc">Run in background without opening an interactive shell session</div>
+            <div class="cmd-card-syntax">ssh -fN -o ServerAliveInterval=30 -L 5432:db:5432 user@jump</div>
           </div>
         </div>
 
