@@ -108,6 +108,47 @@
 <span class="prompt">$ </span><span class="cmd">netstat</span> <span class="flag">-tlnp</span>
           </div>
         </div>
+
+        <!-- SS SOCKET FILTER STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🔌 Interactive Socket Statistics (ss) Inspector</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE KERNEL SOCKETS</span>
+            </div>
+            <span class="chip">ss -tulpn Filter</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Filter active Linux sockets by connection state to inspect network services, bound IP addresses, and daemon PID process mappings.</p>
+
+            <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;">
+              <label class="studio-label" for="ss-state-filter" style="margin-bottom:0;">Filter Socket State:</label>
+              <select id="ss-state-filter" class="studio-select" style="max-width:240px;">
+                <option value="ALL">ALL (All active sockets)</option>
+                <option value="LISTEN" selected>LISTEN (Listening daemons)</option>
+                <option value="ESTAB">ESTABLISHED (Active sessions)</option>
+                <option value="UNCONN">UNCONN (UDP endpoints)</option>
+              </select>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Netid</th>
+                    <th>State</th>
+                    <th>Local Address:Port</th>
+                    <th>Peer Address:Port</th>
+                    <th>Process / Daemon</th>
+                  </tr>
+                </thead>
+                <tbody id="ss-filter-tbody">
+                  <!-- Rendered dynamically by MonitoringStudio -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- PING & TRACEROUTE -->
@@ -180,6 +221,59 @@
 <span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-vvv -n -i</span> ens3 port 443
           </div>
         </div>
+
+        <!-- TCPDUMP BPF STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🎣 Interactive tcpdump BPF Filter & Live Packet Stream</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE PACKET STREAM</span>
+            </div>
+            <span class="chip">Berkeley Packet Filter (BPF)</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Assemble custom kernel packet filters using BPF primitives and stream simulated raw packet decodes.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+              <div>
+                <label class="studio-label" for="bpf-iface">Interface</label>
+                <select id="bpf-iface" class="studio-select">
+                  <option value="ens3">ens3 (Ethernet)</option>
+                  <option value="lo">lo (Loopback)</option>
+                  <option value="wg0">wg0 (VPN Tunnel)</option>
+                  <option value="any">any (All Interfaces)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="bpf-proto">Protocol</label>
+                <select id="bpf-proto" class="studio-select">
+                  <option value="tcp">tcp</option>
+                  <option value="udp">udp</option>
+                  <option value="icmp">icmp</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="bpf-port">Port Number</label>
+                <input type="text" id="bpf-port" class="studio-input" value="80" placeholder="e.g. 80, 443, 22" />
+              </div>
+              <div>
+                <label class="studio-label" for="bpf-flags">TCP Flags</label>
+                <select id="bpf-flags" class="studio-select">
+                  <option value="any">Any Flag State</option>
+                  <option value="syn">SYN only (New Connections)</option>
+                  <option value="syn-ack">SYN-ACK (Handshake Responses)</option>
+                  <option value="rst">RST only (Connection Aborts)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">BPF Capture Command:</div>
+            <div class="studio-code-box" id="bpf-out-cmd" style="margin-bottom:1rem;"></div>
+
+            <button class="btn btn-primary" id="bpf-stream-btn" style="margin-bottom:0.75rem;padding:0.55rem 1.25rem;">▶️ Start Simulated Capture Stream</button>
+            <div class="studio-code-box" id="bpf-stream-output" style="height:150px;overflow-y:auto;color:var(--cyan);font-size:0.78rem;">Click "Start Simulated Capture Stream" to listen for live incoming traffic matches.</div>
+          </div>
+        </div>
       </section>
 
       <!-- NMAP -->
@@ -231,7 +325,7 @@
 
       <!-- BANDWIDTH -->
       <section class="content-section" data-section="bandwidth" id="bandwidth">
-        <h2 class="sect-title"><span class="sect-icon">📊</span> Bandwidth Monitoring Tools</h2>
+        <h2 class="sect-title"><span class="sect-icon">📊</span> Bandwidth Monitoring & Telemetry</h2>
 
         <div class="cmd-grid">
           <div class="cmd-card">
@@ -263,6 +357,46 @@
             <div class="cmd-card-title">bmon</div>
             <div class="cmd-card-desc">Bandwidth monitor for all interfaces</div>
             <div class="cmd-card-syntax">bmon</div>
+          </div>
+        </div>
+
+        <!-- REALTIME BANDWIDTH MONITOR WIDGET -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>📊 Real-Time Network Throughput & Interface Telemetry</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE 1Hz STREAM</span>
+            </div>
+            <span class="chip">ens3 · RX / TX</span>
+          </div>
+          <div class="widget-studio-body">
+            <div class="telemetry-grid" style="margin-bottom:1rem;">
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Inbound Throughput (RX)</div>
+                <div class="telemetry-card-val" id="telemetry-rx-speed" style="color:var(--cyan)">384 KB/s</div>
+              </div>
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Outbound Throughput (TX)</div>
+                <div class="telemetry-card-val" id="telemetry-tx-speed" style="color:var(--purple)">188 KB/s</div>
+              </div>
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Total Packets Processed</div>
+                <div class="telemetry-card-val" id="telemetry-total-pkts" style="color:var(--green)">1,842,000</div>
+              </div>
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Firewall Dropped Packets</div>
+                <div class="telemetry-card-val" id="telemetry-dropped-pkts" style="color:var(--red)">28,140</div>
+              </div>
+            </div>
+
+            <div style="background:rgba(2,6,16,0.9);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;">
+              <div style="font-size:0.75rem;color:var(--text-muted);display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                <span><span style="color:var(--cyan);font-weight:bold;">━</span> RX Download</span>
+                <span><span style="color:var(--purple);font-weight:bold;">━</span> TX Upload</span>
+                <span>Interval: 1.0s</span>
+              </div>
+              <canvas id="bandwidth-canvas" style="width:100%;height:160px;display:block;"></canvas>
+            </div>
           </div>
         </div>
       </section>
