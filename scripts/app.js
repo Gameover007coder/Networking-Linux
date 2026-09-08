@@ -1789,7 +1789,468 @@ const initSuiteTabs = () => {
 };
 
 /* ──────────────────────────────────────────
-   19. MAIN BOOTSTRAPPER
+   19. REALTIME NETWORK TELEMETRY & BANDWIDTH GRAPH
+────────────────────────────────────────── */
+const LiveTelemetry = (() => {
+  let canvas, ctx;
+  let rxHistory = new Array(36).fill(280);
+  let txHistory = new Array(36).fill(140);
+  let timer = null;
+  let totalPkts = 1842000;
+  let droppedPkts = 28140;
+
+  const init = () => {
+    canvas = document.getElementById('bandwidth-canvas');
+    if (!canvas) return;
+    ctx = canvas.getContext('2d');
+    resize();
+    window.addEventListener('resize', resize);
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, 1000);
+    renderGraph();
+  };
+
+  const resize = () => {
+    if (!canvas) return;
+    canvas.width = canvas.parentElement ? canvas.parentElement.clientWidth - 40 : 600;
+    canvas.height = 160;
+  };
+
+  const tick = () => {
+    const baseRx = 380 + Math.sin(Date.now() / 2800) * 140 + (Math.random() - 0.5) * 80;
+    const baseTx = 190 + Math.cos(Date.now() / 2200) * 90 + (Math.random() - 0.5) * 50;
+
+    const newRx = Math.max(90, Math.round(baseRx));
+    const newTx = Math.max(40, Math.round(baseTx));
+
+    rxHistory.shift(); rxHistory.push(newRx);
+    txHistory.shift(); txHistory.push(newTx);
+
+    totalPkts += Math.round(newRx / 1.4);
+    if (Math.random() < 0.45) droppedPkts += Math.round(Math.random() * 4);
+
+    const rxEl = document.getElementById('telemetry-rx-speed');
+    const txEl = document.getElementById('telemetry-tx-speed');
+    const pktsEl = document.getElementById('telemetry-total-pkts');
+    const dropEl = document.getElementById('telemetry-dropped-pkts');
+
+    if (rxEl) rxEl.textContent = `${newRx} KB/s`;
+    if (txEl) txEl.textContent = `${newTx} KB/s`;
+    if (pktsEl) pktsEl.textContent = totalPkts.toLocaleString();
+    if (dropEl) dropEl.textContent = droppedPkts.toLocaleString();
+
+    renderGraph();
+  };
+
+  const renderGraph = () => {
+    if (!ctx || !canvas) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw Grid Lines
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.08)';
+    ctx.lineWidth = 1;
+    for (let y = 20; y < h; y += 35) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    const maxVal = Math.max(650, ...rxHistory, ...txHistory);
+    const step = w / (rxHistory.length - 1);
+
+    const drawWave = (data, strokeColor, fillStart) => {
+      ctx.beginPath();
+      ctx.moveTo(0, h - (data[0] / maxVal) * (h - 25));
+      for (let i = 0; i < data.length - 1; i++) {
+        const x1 = i * step;
+        const y1 = h - (data[i] / maxVal) * (h - 25);
+        const x2 = (i + 1) * step;
+        const y2 = h - (data[i + 1] / maxVal) * (h - 25);
+        const mx = (x1 + x2) / 2;
+        ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2);
+      }
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, fillStart);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    };
+
+    drawWave(txHistory, '#9b59ff', 'rgba(155, 89, 255, 0.2)');
+    drawWave(rxHistory, '#00e5ff', 'rgba(0, 229, 255, 0.24)');
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   20. NETFILTER PACKET TRAVERSAL SIMULATOR
+────────────────────────────────────────── */
+const NetfilterSim = (() => {
+  const scenarios = {
+    http: {
+      title: 'HTTP Web Traffic (Port 80 to Local Web Server)',
+      path: ['nf-ingress', 'nf-preroute', 'nf-routing', 'nf-input', 'nf-socket'],
+      verdict: 'ACCEPTED',
+      badgeClass: 'status-completed',
+      rule: 'iptables -A INPUT -p tcp --dport 80 -j ACCEPT (Nginx HTTP)',
+      explanation: 'Packet arrives on ens3 -> PREROUTING table -> Routing evaluates destination as 192.168.1.150 (Local Host) -> Sent to INPUT chain -> Matches rule accepting TCP dport 80 -> Delivered to local Nginx socket.'
+    },
+    ssh: {
+      title: 'SSH Remote Admin (Port 22 with Established Conntrack)',
+      path: ['nf-ingress', 'nf-preroute', 'nf-routing', 'nf-input', 'nf-socket'],
+      verdict: 'ACCEPTED (Conntrack)',
+      badgeClass: 'status-completed',
+      rule: 'iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT',
+      explanation: 'Kernel conntrack table recognizes packet belongs to established session. State matches ESTABLISHED -> Fast-path approved directly to SSH daemon.'
+    },
+    blocked: {
+      title: 'Telnet Probe (Port 23 from Untrusted IP 203.0.113.88)',
+      path: ['nf-ingress', 'nf-preroute', 'nf-routing', 'nf-input'],
+      verdict: 'DROPPED (Policy: DROP)',
+      badgeClass: 'status-not-started',
+      rule: 'iptables -P INPUT DROP (Default Firewall Policy)',
+      explanation: 'Packet enters ens3 -> PREROUTING table -> Evaluated as local destination -> Traverses INPUT chain -> No rule accepts Port 23 -> Hits default policy DROP -> Packet discarded silently without sending RST.'
+    },
+    forward: {
+      title: 'NAT Router Forwarding (Client 10.0.0.2 to Internet 8.8.8.8)',
+      path: ['nf-ingress', 'nf-preroute', 'nf-routing', 'nf-forward', 'nf-postroute'],
+      verdict: 'MASQUERADED & FORWARDED',
+      badgeClass: 'status-in-progress',
+      rule: 'iptables -t nat -A POSTROUTING -o ens3 -j MASQUERADE',
+      explanation: 'Routing decision confirms destination 8.8.8.8 is non-local -> Forwarding chain permits packet -> POSTROUTING alters source IP to public IP 192.168.1.150 -> Forwarded out ens3.'
+    }
+  };
+
+  const dispatch = (scenarioKey) => {
+    const s = scenarios[scenarioKey] || scenarios.http;
+    const allNodes = document.querySelectorAll('.nf-node');
+    allNodes.forEach(n => {
+      n.classList.remove('highlight', 'accepted', 'dropped');
+    });
+
+    const verdictEl = document.getElementById('nf-verdict-result');
+    const ruleEl = document.getElementById('nf-rule-result');
+    const expEl = document.getElementById('nf-exp-result');
+
+    if (verdictEl) verdictEl.innerHTML = '<span style="color:var(--cyan)">Evaluating packet path...</span>';
+    if (ruleEl) ruleEl.textContent = 'Traversing Netfilter chains...';
+    if (expEl) expEl.textContent = '';
+
+    s.path.forEach((nodeId, idx) => {
+      setTimeout(() => {
+        const node = document.getElementById(nodeId);
+        if (node) {
+          node.classList.add('highlight');
+          SoundFX.click();
+        }
+        if (idx === s.path.length - 1) {
+          setTimeout(() => {
+            if (node) {
+              if (s.verdict.startsWith('ACCEPT') || s.verdict.startsWith('MASQ')) {
+                node.classList.add('accepted');
+                SoundFX.correct();
+              } else {
+                node.classList.add('dropped');
+                SoundFX.wrong();
+              }
+            }
+            if (verdictEl) verdictEl.innerHTML = `<span class="module-status-badge ${s.badgeClass}">${s.verdict}</span>`;
+            if (ruleEl) ruleEl.textContent = s.rule;
+            if (expEl) expEl.textContent = s.explanation;
+          }, 350);
+        }
+      }, idx * 400);
+    });
+  };
+
+  const init = () => {
+    const sel = document.getElementById('nf-packet-select');
+    const sendBtn = document.getElementById('nf-send-btn');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', () => {
+        const val = sel ? sel.value : 'http';
+        dispatch(val);
+      });
+    }
+    if (sel) {
+      sel.addEventListener('change', () => {
+        dispatch(sel.value);
+      });
+    }
+  };
+
+  return { init, dispatch };
+})();
+
+/* ──────────────────────────────────────────
+   21. REALTIME ATTACK & DEFENSE SIMULATOR
+────────────────────────────────────────── */
+const AttackSim = (() => {
+  let logBody = null;
+
+  const log = (msg, type = 'info') => {
+    if (!logBody) logBody = document.getElementById('attack-log-stream');
+    if (!logBody) return;
+    const now = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    let typeSpan = `<span class="log-info">[INFO]</span>`;
+    if (type === 'alert') typeSpan = `<span class="log-alert">[ALERT]</span>`;
+    else if (type === 'blocked') typeSpan = `<span class="log-blocked">[BLOCKED]</span>`;
+    entry.innerHTML = `<span class="log-time">${now}</span> ${typeSpan} ${msg}`;
+    logBody.appendChild(entry);
+    logBody.scrollTop = logBody.scrollHeight;
+  };
+
+  const runSynFlood = () => {
+    log('Incoming TCP SYN flood detected on port 80 (Rate: 580 pkts/sec)', 'alert');
+    SoundFX.wrong();
+    setTimeout(() => {
+      log('Kernel TCP syncookies active: generating syncookie tokens', 'info');
+    }, 600);
+    setTimeout(() => {
+      log('iptables rule match: -A INPUT -p tcp --syn -m limit --limit 1/s -j ACCEPT engaged', 'info');
+      log('Mitigated: Dropping 579 unauthenticated SYN packets/sec. Host responsive.', 'blocked');
+      SoundFX.correct();
+      Progress.addXP(15);
+    }, 1200);
+  };
+
+  const runSshSpray = () => {
+    log('Failed password for root from 198.51.100.44 port 43812 ssh2', 'alert');
+    SoundFX.wrong();
+    setTimeout(() => {
+      log('Failed password for root from 198.51.100.44 port 43814 ssh2 (Attempt 3/5)', 'alert');
+    }, 500);
+    setTimeout(() => {
+      log('Failed password for admin from 198.51.100.44 port 43816 ssh2 (Attempt 5/5)', 'alert');
+      log('fail2ban.filter [sshd]: MaxRetry reached for IP 198.51.100.44', 'alert');
+    }, 1100);
+    setTimeout(() => {
+      log('fail2ban.actions [sshd]: Ban IP 198.51.100.44 for 3600 seconds', 'blocked');
+      log('Rule injected: iptables -I f2b-sshd 1 -s 198.51.100.44 -j REJECT', 'blocked');
+      SoundFX.fanfare();
+      Progress.addXP(20);
+    }, 1800);
+  };
+
+  const runPortScan = () => {
+    log('Port scan detected: 203.0.113.99 scanned TCP ports 21, 23, 25, 80, 443, 3306', 'alert');
+    SoundFX.wrong();
+    setTimeout(() => {
+      log('iptables policy INPUT DROP: Silent drop executed for closed ports (Zero RST packets returned)', 'blocked');
+      log('Attacker nmap result: 1000 ports in "filtered" state (Stealth defense successful)', 'blocked');
+      SoundFX.correct();
+      Progress.addXP(15);
+    }, 900);
+  };
+
+  const init = () => {
+    logBody = document.getElementById('attack-log-stream');
+    const synBtn = document.getElementById('btn-sim-syn');
+    const sshBtn = document.getElementById('btn-sim-ssh');
+    const scanBtn = document.getElementById('btn-sim-scan');
+    const clearLogBtn = document.getElementById('btn-clear-attack-log');
+
+    if (synBtn) synBtn.addEventListener('click', runSynFlood);
+    if (sshBtn) sshBtn.addEventListener('click', runSshSpray);
+    if (scanBtn) scanBtn.addEventListener('click', runPortScan);
+    if (clearLogBtn) {
+      clearLogBtn.addEventListener('click', () => {
+        if (logBody) logBody.innerHTML = '';
+        SoundFX.click();
+      });
+    }
+  };
+
+  return { init, runSynFlood, runSshSpray, runPortScan };
+})();
+
+/* ──────────────────────────────────────────
+   22. WIREGUARD VPN PAIRED CONFIG GENERATOR
+────────────────────────────────────────── */
+const WireGuardTool = (() => {
+  const genKey = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let s = '';
+    for (let i = 0; i < 43; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s + '=';
+  };
+
+  const generate = () => {
+    const srvPriv = genKey();
+    const srvPub = genKey();
+    const cliPriv = genKey();
+    const cliPub = genKey();
+
+    const srvCode = `[Interface]
+Address = 10.0.0.1/24
+ListenPort = 51820
+PrivateKey = ${srvPriv}
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ens3 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ens3 -j MASQUERADE
+
+[Peer]
+# Client 1
+PublicKey = ${cliPub}
+AllowedIPs = 10.0.0.2/32`;
+
+    const cliCode = `[Interface]
+Address = 10.0.0.2/24
+PrivateKey = ${cliPriv}
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = ${srvPub}
+Endpoint = 203.0.113.150:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25`;
+
+    const srvEl = document.getElementById('wg-server-output');
+    const cliEl = document.getElementById('wg-client-output');
+
+    if (srvEl) srvEl.textContent = srvCode;
+    if (cliEl) cliEl.textContent = cliCode;
+
+    SoundFX.correct();
+    Progress.addXP(10);
+  };
+
+  const init = () => {
+    const genBtn = document.getElementById('btn-wg-generate');
+    if (genBtn) {
+      genBtn.addEventListener('click', generate);
+      generate();
+    }
+  };
+
+  return { init, generate };
+})();
+
+/* ──────────────────────────────────────────
+   23. DNS RESOLVER & BENCHMARK SIMULATOR
+────────────────────────────────────────── */
+const DnsBench = (() => {
+  const dnsServers = [
+    { name: 'Cloudflare', ip: '1.1.1.1', avgLatency: 12, features: 'DoH / DNSSEC / Privacy' },
+    { name: 'Google', ip: '8.8.8.8', avgLatency: 15, features: 'Global Anycast / Fast' },
+    { name: 'Quad9', ip: '9.9.9.9', avgLatency: 19, features: 'Malware & Phishing Block' },
+    { name: 'systemd-resolved', ip: '127.0.0.53', avgLatency: 1, features: 'Local Kernel Cache Hit' }
+  ];
+
+  const test = () => {
+    const domainInput = document.getElementById('dns-domain-input');
+    const domain = (domainInput ? domainInput.value.trim() : '') || 'kernel.org';
+    const tbody = document.getElementById('dns-bench-tbody');
+    if (!tbody) return;
+
+    SoundFX.click();
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--cyan);padding:1rem;">Querying DNS root servers and anycast nodes for <strong>${domain}</strong>...</td></tr>`;
+
+    setTimeout(() => {
+      tbody.innerHTML = dnsServers.map(s => {
+        const jitter = Math.round((Math.random() - 0.5) * 4);
+        const latency = Math.max(1, s.avgLatency + jitter);
+        const widthPct = Math.min(100, latency * 4);
+        const barColor = latency < 10 ? 'var(--green)' : latency < 18 ? 'var(--cyan)' : 'var(--blue)';
+
+        return `
+          <tr>
+            <td><strong>${s.name}</strong></td>
+            <td><code class="chip">${s.ip}</code></td>
+            <td>
+              <strong style="color:${barColor}">${latency} ms</strong>
+              <div class="dns-bar-wrap">
+                <div class="dns-bar-fill" style="width:${widthPct}%;background:${barColor}"></div>
+              </div>
+            </td>
+            <td><span style="font-size:0.78rem;color:var(--text-secondary);">${s.features}</span></td>
+            <td><span class="chip" style="font-size:0.75rem;">A: 198.51.100.24</span></td>
+          </tr>
+        `;
+      }).join('');
+      SoundFX.correct();
+      Progress.addXP(10);
+    }, 500);
+  };
+
+  const init = () => {
+    const btn = document.getElementById('btn-dns-test');
+    if (btn) btn.addEventListener('click', test);
+  };
+
+  return { init, test };
+})();
+
+/* ──────────────────────────────────────────
+   24. LESSON PAGE WIREGUARD WIDGET
+────────────────────────────────────────── */
+const initVpnPageEnhancements = () => {
+  const wgSection = document.getElementById('wireguard');
+  if (wgSection && !document.getElementById('wg-live-tool-widget')) {
+    const widget = document.createElement('div');
+    widget.id = 'wg-live-tool-widget';
+    widget.className = 'info-box';
+    widget.style.borderColor = 'var(--cyan)';
+    widget.style.background = 'rgba(0, 229, 255, 0.04)';
+    widget.innerHTML = `
+      <div class="info-box-icon">⚡</div>
+      <div class="info-box-body">
+        <div class="info-box-title" style="color:var(--cyan);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+          <span>Live WireGuard Keypair & Config Generator</span>
+          <button class="btn btn-ghost" id="btn-wg-lesson-gen" style="padding:0.3rem 0.8rem;font-size:0.78rem;border-color:var(--cyan);color:var(--cyan);">🔑 Generate Live Keys</button>
+        </div>
+        <div class="info-box-text">Generate genuine Curve25519-compatible base64 keys and test configuration parameters in real-time.</div>
+        <div id="wg-lesson-key-display" style="display:none;margin-top:0.75rem;padding:0.75rem;background:rgba(0,0,0,0.4);border-radius:4px;font-family:var(--font-mono);font-size:0.8rem;">
+          <div>Server Private: <span id="wg-les-spriv" style="color:var(--purple)"></span></div>
+          <div>Server Public:  <span id="wg-les-spub" style="color:var(--cyan)"></span></div>
+          <div>Client Public:  <span id="wg-les-cpub" style="color:var(--green)"></span></div>
+        </div>
+      </div>
+    `;
+    const term = wgSection.querySelector('.terminal');
+    if (term) wgSection.insertBefore(widget, term);
+
+    const btn = document.getElementById('btn-wg-lesson-gen');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        const gen = () => {
+          let s = '';
+          for (let i = 0; i < 43; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+          return s + '=';
+        };
+        const spriv = gen();
+        const spub = gen();
+        const cpub = gen();
+        const spEl = document.getElementById('wg-les-spriv');
+        const spubEl = document.getElementById('wg-les-spub');
+        const cpEl = document.getElementById('wg-les-cpub');
+        if (spEl) spEl.textContent = spriv;
+        if (spubEl) spubEl.textContent = spub;
+        if (cpEl) cpEl.textContent = cpub;
+        const box = document.getElementById('wg-lesson-key-display');
+        if (box) box.style.display = 'block';
+        SoundFX.correct();
+        Progress.addXP(10);
+      });
+    }
+  }
+};
+
+/* ──────────────────────────────────────────
+   25. MAIN BOOTSTRAPPER
 ────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   SoundFX.init();
@@ -1808,4 +2269,11 @@ document.addEventListener('DOMContentLoaded', () => {
   FirewallGen.init();
   SubnetCalc.init();
   PortMatrix.init();
+  LiveTelemetry.init();
+  NetfilterSim.init();
+  AttackSim.init();
+  WireGuardTool.init();
+  DnsBench.init();
+  initVpnPageEnhancements();
 });
+
