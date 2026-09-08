@@ -2468,3 +2468,147 @@ footer {
   transition: width 0.6s ease;
 }
 
+/* ============================================================
+   INTERACTIVE LESSON WIDGET STUDIOS & REALTIME SIMULATORS
+   ============================================================ */
+.widget-studio {
+  background: rgba(8, 15, 34, 0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: 2rem 0;
+  overflow: hidden;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: var(--transition);
+}
+.widget-studio:hover {
+  border-color: var(--border-hover);
+}
+.widget-studio-header {
+  background: rgba(2, 6, 16, 0.8);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.widget-studio-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.widget-studio-body {
+  padding: 1.5rem;
+}
+.widget-studio-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 900px) {
+  .widget-studio-split { grid-template-columns: 1fr; }
+}
+
+.studio-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+.studio-input, .studio-select {
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  background: rgba(2, 6, 16, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+.studio-input:focus, .studio-select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.studio-code-box {
+  background: #01040a;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--green);
+  line-height: 1.6;
+  position: relative;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.studio-copy-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+}
+
+/* Security Gauge / Meter for Hardening */
+.sec-meter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: rgba(2, 6, 16, 0.6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+.sec-meter-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  border: 3px solid var(--cyan);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+}
+.sec-meter-circle.high { border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0, 255, 163, 0.3); }
+.sec-meter-circle.med { border-color: var(--yellow); color: var(--yellow); box-shadow: 0 0 15px rgba(255, 211, 42, 0.25); }
+.sec-meter-circle.low { border-color: var(--red); color: var(--red); box-shadow: 0 0 15px rgba(255, 87, 87, 0.3); }
+
+/* Switch Toggle Row */
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
+.toggle-desc { font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Realtime Conntrack Table */
+.realtime-table th, .realtime-table td {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.82rem;
+}
+.timer-pulse {
+  animation: pulse 1s infinite;
+  color: var(--yellow);
+  font-weight: bold;
+}
+
+
