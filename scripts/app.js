@@ -2250,7 +2250,597 @@ const initVpnPageEnhancements = () => {
 };
 
 /* ──────────────────────────────────────────
-   25. MAIN BOOTSTRAPPER
+   25. NETWORK CONFIGURATION LESSON STUDIO
+────────────────────────────────────────── */
+const NetworkConfigStudio = (() => {
+  const init = () => {
+    // 1. Triple Interface Config Generator (ip, nmcli, netplan)
+    const ifaceInput = document.getElementById('ncs-iface');
+    const ipInput = document.getElementById('ncs-ip');
+    const gwInput = document.getElementById('ncs-gw');
+    const dnsInput = document.getElementById('ncs-dns');
+
+    const outIp = document.getElementById('ncs-out-ip');
+    const outNmcli = document.getElementById('ncs-out-nmcli');
+    const outNetplan = document.getElementById('ncs-out-netplan');
+
+    const updateConfigs = () => {
+      if (!outIp || !outNmcli || !outNetplan) return;
+      const iface = (ifaceInput ? ifaceInput.value.trim() : '') || 'ens3';
+      const ip = (ipInput ? ipInput.value.trim() : '') || '192.168.1.50/24';
+      const gw = (gwInput ? gwInput.value.trim() : '') || '192.168.1.1';
+      const dns = (dnsInput ? dnsInput.value.trim() : '') || '8.8.8.8 1.1.1.1';
+      const dnsArray = dns.split(/[\s,]+/).filter(Boolean);
+
+      // 1. iproute2 commands
+      outIp.textContent = `# 1. Assign IP address and bring interface UP
+sudo ip addr add ${ip} dev ${iface}
+sudo ip link set ${iface} up
+
+# 2. Add default gateway
+sudo ip route add default via ${gw} dev ${iface}
+
+# 3. Verify IP and routing
+ip addr show dev ${iface}
+ip route show`;
+
+      // 2. nmcli command
+      outNmcli.textContent = `# Add permanent NetworkManager connection profile
+sudo nmcli con add type ethernet con-name "static-${iface}" ifname ${iface} \\
+    ipv4.method manual \\
+    ipv4.addresses "${ip}" \\
+    ipv4.gateway "${gw}" \\
+    ipv4.dns "${dnsArray.join(' ')}"
+
+# Activate connection
+sudo nmcli con up "static-${iface}"`;
+
+      // 3. Netplan YAML
+      outNetplan.textContent = `# /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ${iface}:
+      dhcp4: no
+      addresses:
+        - ${ip}
+      routes:
+        - to: default
+          via: ${gw}
+      nameservers:
+        addresses: [${dnsArray.join(', ')}]
+# Apply with: sudo netplan apply`;
+    };
+
+    if (ifaceInput) ifaceInput.addEventListener('input', updateConfigs);
+    if (ipInput) ipInput.addEventListener('input', updateConfigs);
+    if (gwInput) gwInput.addEventListener('input', updateConfigs);
+    if (dnsInput) dnsInput.addEventListener('input', updateConfigs);
+    updateConfigs();
+
+    // 2. Next-Hop Route Evaluator
+    const routeDstInput = document.getElementById('route-eval-dst');
+    const routeEvalBtn = document.getElementById('route-eval-btn');
+    const routeResult = document.getElementById('route-eval-result');
+
+    const routingTable = [
+      { prefix: '127.0.0.0/8', net: '127.0.0.0', mask: 8, iface: 'lo', gw: 'onlink', metric: 0, desc: 'Local Loopback' },
+      { prefix: '192.168.1.0/24', net: '192.168.1.0', mask: 24, iface: 'ens3', gw: 'onlink', metric: 100, desc: 'Local Subnet LAN' },
+      { prefix: '10.10.0.0/16', net: '10.10.0.0', mask: 16, iface: 'ens3', gw: '192.168.1.254', metric: 10, desc: 'Internal Branch Office' },
+      { prefix: '10.0.0.0/24', net: '10.0.0.0', mask: 24, iface: 'wg0', gw: 'onlink', metric: 50, desc: 'WireGuard VPN Tunnel' },
+      { prefix: '0.0.0.0/0', net: '0.0.0.0', mask: 0, iface: 'ens3', gw: '192.168.1.1', metric: 100, desc: 'Default Gateway (Internet)' }
+    ];
+
+    const ipToNumber = (ipStr) => {
+      const parts = ipStr.split('.');
+      if (parts.length !== 4) return null;
+      return parts.reduce((acc, octet) => {
+        const n = parseInt(octet, 10);
+        return (acc << 8) + (isNaN(n) ? 0 : n);
+      }, 0) >>> 0;
+    };
+
+    const matchRoute = (targetIp) => {
+      const targetNum = ipToNumber(targetIp);
+      if (targetNum === null) return null;
+
+      // Longest prefix match
+      let bestMatch = null;
+      routingTable.forEach(route => {
+        const maskNum = route.mask === 0 ? 0 : (~0 << (32 - route.mask)) >>> 0;
+        const netNum = ipToNumber(route.net);
+        if ((targetNum & maskNum) >>> 0 === (netNum & maskNum) >>> 0) {
+          if (!bestMatch || route.mask > bestMatch.mask) {
+            bestMatch = route;
+          }
+        }
+      });
+      return bestMatch;
+    };
+
+    const evaluate = () => {
+      if (!routeDstInput || !routeResult) return;
+      const target = routeDstInput.value.trim();
+      const match = matchRoute(target);
+      if (!match) {
+        routeResult.innerHTML = `<span style="color:var(--red)">Invalid destination IP address format.</span>`;
+        return;
+      }
+      routeResult.innerHTML = `
+        <div style="margin-top:0.75rem;padding:0.85rem;background:rgba(2,6,16,0.7);border-radius:4px;border-left:3px solid var(--green);">
+          <div>🎯 Matched Route: <strong style="color:var(--cyan)">${match.prefix}</strong> (${match.desc})</div>
+          <div>🔌 Egress Interface: <strong style="color:var(--green)">${match.iface}</strong></div>
+          <div>🚪 Next-Hop Gateway: <strong style="color:var(--yellow)">${match.gw}</strong></div>
+          <div>⚡ Route Metric: <strong>${match.metric}</strong> (Longest Prefix Match: /${match.mask})</div>
+        </div>
+      `;
+      SoundFX.correct();
+      Progress.addXP(10);
+    };
+
+    if (routeEvalBtn) routeEvalBtn.addEventListener('click', evaluate);
+    if (routeDstInput) {
+      routeDstInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') evaluate();
+      });
+    }
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   26. IPTABLES & NFTABLES LESSON STUDIO
+────────────────────────────────────────── */
+const IptablesStudio = (() => {
+  const init = () => {
+    // 1. Dual iptables <-> nftables Translator
+    const chainSel = document.getElementById('ipst-chain');
+    const protoSel = document.getElementById('ipst-proto');
+    const portIn = document.getElementById('ipst-port');
+    const srcIn = document.getElementById('ipst-src');
+    const actionSel = document.getElementById('ipst-action');
+
+    const outIptables = document.getElementById('ipst-out-iptables');
+    const outNft = document.getElementById('ipst-out-nft');
+
+    const updateRules = () => {
+      if (!outIptables || !outNft) return;
+      const chain = (chainSel ? chainSel.value : 'INPUT') || 'INPUT';
+      const proto = (protoSel ? protoSel.value : 'tcp') || 'tcp';
+      const port = (portIn ? portIn.value.trim() : '') || '22';
+      const src = (srcIn ? srcIn.value.trim() : '') || 'any';
+      const action = (actionSel ? actionSel.value : 'ACCEPT') || 'ACCEPT';
+
+      // iptables syntax
+      let ipt = `sudo iptables -A ${chain} -p ${proto}`;
+      if (src && src !== 'any') ipt += ` -s ${src}`;
+      if (proto !== 'icmp' && port) ipt += ` --dport ${port}`;
+      ipt += ` -j ${action}`;
+
+      // nftables syntax
+      const nftAction = action.toLowerCase();
+      let nft = `sudo nft add rule inet filter ${chain.toLowerCase()}`;
+      if (src && src !== 'any') nft += ` ip saddr ${src}`;
+      if (proto !== 'icmp' && port) nft += ` ${proto} dport ${port}`;
+      else if (proto === 'icmp') nft += ` ip protocol icmp`;
+      nft += ` ${nftAction}`;
+
+      outIptables.textContent = ipt;
+      outNft.textContent = nft;
+    };
+
+    [chainSel, protoSel, portIn, srcIn, actionSel].forEach(el => {
+      if (el) el.addEventListener('input', updateRules);
+    });
+    updateRules();
+
+    // 2. Realtime Conntrack Table Simulator
+    const conntrackBody = document.getElementById('conntrack-sim-body');
+    if (conntrackBody) {
+      let connections = [
+        { proto: 'tcp', src: '192.168.1.150:48210', dst: '142.250.190.46:443', state: 'ESTABLISHED', ttl: 431980 },
+        { proto: 'tcp', src: '192.168.1.44:52890', dst: '192.168.1.150:22', state: 'ESTABLISHED', ttl: 431890 },
+        { proto: 'udp', src: '192.168.1.150:51820', dst: '203.0.113.88:51820', state: 'UNREPLIED', ttl: 28 },
+        { proto: 'tcp', src: '192.168.1.150:39844', dst: '1.1.1.1:853', state: 'TIME_WAIT', ttl: 58 }
+      ];
+
+      const renderConntrack = () => {
+        conntrackBody.innerHTML = connections.map((c, i) => `
+          <tr>
+            <td><span class="chip" style="font-size:0.75rem;">${c.proto}</span></td>
+            <td><code>${c.src}</code></td>
+            <td><code>${c.dst}</code></td>
+            <td><strong style="color:${c.state === 'ESTABLISHED' ? 'var(--green)' : c.state === 'TIME_WAIT' ? 'var(--yellow)' : 'var(--cyan)'}">${c.state}</strong></td>
+            <td><span class="timer-pulse">${c.ttl}s</span></td>
+          </tr>
+        `).join('');
+      };
+
+      renderConntrack();
+      setInterval(() => {
+        connections.forEach(c => {
+          if (c.ttl > 1) c.ttl -= 1;
+          else c.ttl = c.state === 'TIME_WAIT' ? 120 : 432000;
+        });
+        renderConntrack();
+      }, 1000);
+    }
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   27. FIREWALLD LESSON STUDIO
+────────────────────────────────────────── */
+const FirewalldStudio = (() => {
+  const zoneInfo = {
+    drop: { trust: 'Zero Trust (0/5)', behavior: 'Silently drop all incoming packets', svcs: 'None', target: 'DROP' },
+    block: { trust: 'Untrusted (1/5)', behavior: 'Reject incoming with ICMP host-prohibited', svcs: 'None', target: '%%REJECT%%' },
+    public: { trust: 'Low Trust (2/5) [DEFAULT]', behavior: 'Deny unless explicitly allowed', svcs: 'dhcpv6-client, ssh', target: 'default' },
+    external: { trust: 'Low Trust (Router WAN)', behavior: 'Deny with NAT Masquerading active', svcs: 'ssh', target: 'default (masquerade=yes)' },
+    dmz: { trust: 'Isolated Public Services (3/5)', behavior: 'Exposed servers with restricted LAN', svcs: 'ssh', target: 'default' },
+    internal: { trust: 'High Trust (4/5)', behavior: 'Internal LAN services allowed', svcs: 'dhcpv6-client, mdns, samba-client, ssh', target: 'default' },
+    trusted: { trust: 'Full Trust (5/5)', behavior: 'Accept ALL incoming connections', svcs: 'ALL', target: 'ACCEPT' }
+  };
+
+  const init = () => {
+    // 1. Zone Explorer
+    const zoneSel = document.getElementById('fwd-zone-select');
+    const zoneDisplay = document.getElementById('fwd-zone-display');
+    const zoneOutCmd = document.getElementById('fwd-zone-cmd');
+
+    const updateZone = () => {
+      if (!zoneSel || !zoneDisplay || !zoneOutCmd) return;
+      const zName = zoneSel.value;
+      const z = zoneInfo[zName] || zoneInfo.public;
+
+      zoneDisplay.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem;margin-bottom:1rem;">
+          <div class="telemetry-card" style="padding:0.75rem;">
+            <div class="telemetry-card-title">Zone Trust Level</div>
+            <div style="font-weight:bold;color:var(--cyan);font-size:0.95rem;">${z.trust}</div>
+          </div>
+          <div class="telemetry-card" style="padding:0.75rem;">
+            <div class="telemetry-card-title">Default Target</div>
+            <div style="font-weight:bold;color:var(--green);font-size:0.95rem;">${z.target}</div>
+          </div>
+          <div class="telemetry-card" style="padding:0.75rem;">
+            <div class="telemetry-card-title">Pre-Allowed Services</div>
+            <div style="font-weight:bold;color:var(--yellow);font-size:0.88rem;">${z.svcs}</div>
+          </div>
+        </div>
+      `;
+
+      zoneOutCmd.textContent = `# Query zone details
+sudo firewall-cmd --zone=${zName} --list-all
+
+# Assign interface to zone
+sudo firewall-cmd --zone=${zName} --change-interface=ens3 --permanent
+sudo firewall-cmd --reload`;
+      SoundFX.click();
+    };
+
+    if (zoneSel) {
+      zoneSel.addEventListener('change', updateZone);
+      updateZone();
+    }
+
+    // 2. Rich Rule Studio
+    const rrSubnet = document.getElementById('fwd-rr-subnet');
+    const rrService = document.getElementById('fwd-rr-service');
+    const rrAction = document.getElementById('fwd-rr-action');
+    const rrOut = document.getElementById('fwd-rr-output');
+
+    const updateRichRule = () => {
+      if (!rrOut) return;
+      const sub = (rrSubnet ? rrSubnet.value.trim() : '') || '192.168.1.0/24';
+      const svc = (rrService ? rrService.value : 'ssh') || 'ssh';
+      const act = (rrAction ? rrAction.value : 'accept') || 'accept';
+
+      rrOut.textContent = `# 1. Add permanent rich rule
+sudo firewall-cmd --permanent --zone=public --add-rich-rule='rule family="ipv4" source address="${sub}" service name="${svc}" ${act}'
+
+# 2. Reload daemon to apply
+sudo firewall-cmd --reload
+
+# 3. Verify in active rich rules
+sudo firewall-cmd --zone=public --list-rich-rules`;
+    };
+
+    [rrSubnet, rrService, rrAction].forEach(el => {
+      if (el) el.addEventListener('input', updateRichRule);
+    });
+    updateRichRule();
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   28. UFW LESSON STUDIO
+────────────────────────────────────────── */
+const UfwStudio = (() => {
+  let activeRules = [
+    { id: 1, to: '22/tcp', action: 'ALLOW IN', from: 'Anywhere', comment: 'OpenSSH management' },
+    { id: 2, to: '80,443/tcp', action: 'ALLOW IN', from: 'Anywhere', comment: 'Nginx Web Server' },
+    { id: 3, to: '3306/tcp', action: 'ALLOW IN', from: '192.168.1.0/24', comment: 'MySQL DB Subnet' },
+    { id: 4, to: '23/tcp', action: 'DENY IN', from: 'Anywhere', comment: 'Block Insecure Telnet' }
+  ];
+
+  const renderRules = () => {
+    const tbody = document.getElementById('ufw-interactive-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = activeRules.map((r, idx) => `
+      <tr>
+        <td><strong>[${idx + 1}]</strong></td>
+        <td><code>${r.to}</code></td>
+        <td><span class="chip" style="background:${r.action.startsWith('ALLOW') ? 'rgba(0,255,163,0.1)' : 'rgba(255,87,87,0.1)'};color:${r.action.startsWith('ALLOW') ? 'var(--green)' : 'var(--red)'};">${r.action}</span></td>
+        <td><code>${r.from}</code></td>
+        <td><span style="font-size:0.75rem;color:var(--text-muted);">${r.comment}</span></td>
+        <td>
+          <button class="btn btn-ghost ufw-del-btn" data-idx="${idx}" style="padding:0.2rem 0.5rem;font-size:0.72rem;color:var(--red);border-color:var(--red);">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.ufw-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.idx, 10);
+        activeRules.splice(i, 1);
+        renderRules();
+        SoundFX.wrong();
+      });
+    });
+  };
+
+  const init = () => {
+    renderRules();
+
+    const addBtn = document.getElementById('ufw-add-rule-btn');
+    const portIn = document.getElementById('ufw-add-port');
+    const actSel = document.getElementById('ufw-add-action');
+    const fromIn = document.getElementById('ufw-add-from');
+
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const port = (portIn ? portIn.value.trim() : '') || '8080/tcp';
+        const act = (actSel ? actSel.value : 'ALLOW IN') || 'ALLOW IN';
+        const from = (fromIn ? fromIn.value.trim() : '') || 'Anywhere';
+        activeRules.push({
+          id: activeRules.length + 1,
+          to: port,
+          action: act,
+          from: from,
+          comment: 'Custom student rule'
+        });
+        renderRules();
+        SoundFX.correct();
+        Progress.addXP(10);
+      });
+    }
+
+    const resetBtn = document.getElementById('ufw-reset-rules-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        activeRules = [
+          { id: 1, to: '22/tcp', action: 'ALLOW IN', from: 'Anywhere', comment: 'OpenSSH management' },
+          { id: 2, to: '80,443/tcp', action: 'ALLOW IN', from: 'Anywhere', comment: 'Nginx Web Server' },
+          { id: 3, to: '3306/tcp', action: 'ALLOW IN', from: '192.168.1.0/24', comment: 'MySQL DB Subnet' }
+        ];
+        renderRules();
+        SoundFX.click();
+      });
+    }
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   29. MONITORING LESSON STUDIO (tcpdump BPF & ss Filter)
+────────────────────────────────────────── */
+const MonitoringStudio = (() => {
+  const init = () => {
+    // 1. tcpdump BPF Filter Builder & Streamer
+    const ifaceSel = document.getElementById('bpf-iface');
+    const protoSel = document.getElementById('bpf-proto');
+    const portIn = document.getElementById('bpf-port');
+    const flagsSel = document.getElementById('bpf-flags');
+    const bpfCmd = document.getElementById('bpf-out-cmd');
+    const streamBtn = document.getElementById('bpf-stream-btn');
+    const streamBox = document.getElementById('bpf-stream-output');
+
+    const updateBpf = () => {
+      if (!bpfCmd) return;
+      const iface = (ifaceSel ? ifaceSel.value : 'ens3') || 'ens3';
+      const proto = (protoSel ? protoSel.value : 'tcp') || 'tcp';
+      const port = (portIn ? portIn.value.trim() : '') || '80';
+      const flag = flagsSel ? flagsSel.value : 'any';
+
+      let filter = `${proto}`;
+      if (port) filter += ` and port ${port}`;
+      if (flag === 'syn') filter += ` and (tcp[tcpflags] & tcp-syn != 0)`;
+      else if (flag === 'syn-ack') filter += ` and (tcp[tcpflags] & (tcp-syn|tcp-ack) == (tcp-syn|tcp-ack))`;
+      else if (flag === 'rst') filter += ` and (tcp[tcpflags] & tcp-rst != 0)`;
+
+      bpfCmd.textContent = `sudo tcpdump -i ${iface} -nn -v -c 10 '${filter}'`;
+    };
+
+    [ifaceSel, protoSel, portIn, flagsSel].forEach(el => {
+      if (el) el.addEventListener('input', updateBpf);
+    });
+    updateBpf();
+
+    if (streamBtn && streamBox) {
+      streamBtn.addEventListener('click', () => {
+        streamBox.innerHTML = '<span style="color:var(--cyan)">Starting tcpdump packet listener...</span>\n';
+        SoundFX.click();
+        const port = (portIn ? portIn.value.trim() : '') || '80';
+        let count = 0;
+        const interval = setInterval(() => {
+          count++;
+          const now = new Date().toISOString().substring(11, 23);
+          const clientPort = 40000 + Math.round(Math.random() * 20000);
+          const line = `${now} IP 192.168.1.150.${clientPort} > 93.184.216.34.${port}: Flags [S], seq 3819201${count}, win 64240, length 0\n`;
+          streamBox.textContent += line;
+          streamBox.scrollTop = streamBox.scrollHeight;
+          if (count >= 5) {
+            clearInterval(interval);
+            streamBox.textContent += `\n5 packets captured and decoded.\n`;
+            SoundFX.correct();
+            Progress.addXP(10);
+          }
+        }, 350);
+      });
+    }
+
+    // 2. ss Socket State Filter Studio
+    const sockets = [
+      { netid: 'tcp', state: 'LISTEN', local: '0.0.0.0:22', peer: '0.0.0.0:*', proc: 'sshd (pid=680)' },
+      { netid: 'tcp', state: 'LISTEN', local: '0.0.0.0:80', peer: '0.0.0.0:*', proc: 'nginx (pid=1120)' },
+      { netid: 'tcp', state: 'LISTEN', local: '0.0.0.0:443', peer: '0.0.0.0:*', proc: 'nginx (pid=1120)' },
+      { netid: 'tcp', state: 'LISTEN', local: '127.0.0.1:3306', peer: '0.0.0.0:*', proc: 'mariadbd (pid=890)' },
+      { netid: 'tcp', state: 'ESTAB',  local: '192.168.1.150:22', peer: '192.168.1.44:54120', proc: 'sshd: user@pts/0' },
+      { netid: 'tcp', state: 'ESTAB',  local: '192.168.1.150:443', peer: '198.51.100.22:38902', proc: 'nginx: worker' },
+      { netid: 'udp', state: 'UNCONN', local: '0.0.0.0:51820', peer: '0.0.0.0:*', proc: 'wireguard (kernel)' },
+      { netid: 'udp', state: 'UNCONN', local: '127.0.0.53:53', peer: '0.0.0.0:*', proc: 'systemd-resolve' }
+    ];
+
+    const ssFilterSel = document.getElementById('ss-state-filter');
+    const ssTbody = document.getElementById('ss-filter-tbody');
+
+    const renderSockets = () => {
+      if (!ssTbody) return;
+      const filter = ssFilterSel ? ssFilterSel.value : 'ALL';
+      const filtered = sockets.filter(s => filter === 'ALL' || s.state === filter);
+      ssTbody.innerHTML = filtered.map(s => `
+        <tr>
+          <td><span class="chip" style="font-size:0.75rem;">${s.netid}</span></td>
+          <td><strong style="color:${s.state === 'LISTEN' ? 'var(--cyan)' : s.state === 'ESTAB' ? 'var(--green)' : 'var(--yellow)'}">${s.state}</strong></td>
+          <td><code>${s.local}</code></td>
+          <td><code>${s.peer}</code></td>
+          <td><span style="color:var(--text-primary);font-size:0.8rem;">${s.proc}</span></td>
+        </tr>
+      `).join('');
+    };
+
+    if (ssFilterSel) {
+      ssFilterSel.addEventListener('change', () => {
+        renderSockets();
+        SoundFX.click();
+      });
+      renderSockets();
+    }
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   30. HARDENING LESSON STUDIO (sshd_config Auditor & sysctl Generator)
+────────────────────────────────────────── */
+const HardeningStudio = (() => {
+  const init = () => {
+    // 1. sshd_config Security Auditor
+    const checks = {
+      root: { el: document.getElementById('chk-ssh-root'), weight: 25, penalty: 'Root login allowed via SSH is high risk' },
+      pass: { el: document.getElementById('chk-ssh-pass'), weight: 25, penalty: 'Password auth enabled: vulnerable to brute-force sprays' },
+      port: { el: document.getElementById('chk-ssh-port'), weight: 15, penalty: 'Default port 22 subjected to automated internet scanners' },
+      tries: { el: document.getElementById('chk-ssh-tries'), weight: 15, penalty: 'MaxAuthTries > 3 allows repeated login attempts' },
+      x11: { el: document.getElementById('chk-ssh-x11'), weight: 10, penalty: 'X11Forwarding enabled allows client GUI snooping' },
+      key: { el: document.getElementById('chk-ssh-key'), weight: 10, penalty: 'PubkeyAuthentication must be explicitly forced' }
+    };
+
+    const scoreCircle = document.getElementById('sshd-score-circle');
+    const scoreVal = document.getElementById('sshd-score-val');
+    const adviceList = document.getElementById('sshd-audit-advice');
+    const outConfig = document.getElementById('sshd-out-config');
+
+    const audit = () => {
+      if (!scoreCircle || !scoreVal) return;
+      let score = 0;
+      let advice = [];
+
+      const rootOk = checks.root.el && checks.root.el.checked;
+      const passOk = checks.pass.el && checks.pass.el.checked;
+      const portOk = checks.port.el && checks.port.el.checked;
+      const triesOk = checks.tries.el && checks.tries.el.checked;
+      const x11Ok = checks.x11.el && checks.x11.el.checked;
+      const keyOk = checks.key.el && checks.key.el.checked;
+
+      if (rootOk) score += checks.root.weight; else advice.push(checks.root.penalty);
+      if (passOk) score += checks.pass.weight; else advice.push(checks.pass.penalty);
+      if (portOk) score += checks.port.weight; else advice.push(checks.port.penalty);
+      if (triesOk) score += checks.tries.weight; else advice.push(checks.tries.penalty);
+      if (x11Ok) score += checks.x11.weight; else advice.push(checks.x11.penalty);
+      if (keyOk) score += checks.key.weight; else advice.push(checks.key.penalty);
+
+      scoreVal.textContent = `${score}%`;
+      scoreCircle.className = 'sec-meter-circle ' + (score >= 80 ? 'high' : score >= 50 ? 'med' : 'low');
+
+      if (adviceList) {
+        adviceList.innerHTML = advice.length
+          ? advice.map(a => `<li style="margin-bottom:0.25rem;color:var(--text-secondary);font-size:0.8rem;">⚠️ ${a}</li>`).join('')
+          : `<li style="color:var(--green);font-weight:bold;font-size:0.85rem;">🛡️ Excellent! Hardened against CIS Benchmark Level 2 standards.</li>`;
+      }
+
+      if (outConfig) {
+        outConfig.textContent = `# /etc/ssh/sshd_config.d/99-hardened.conf
+Port ${portOk ? '2222' : '22'}
+PermitRootLogin ${rootOk ? 'no' : 'prohibit-password'}
+PasswordAuthentication ${passOk ? 'no' : 'yes'}
+PubkeyAuthentication ${keyOk ? 'yes' : 'yes'}
+MaxAuthTries ${triesOk ? '3' : '6'}
+X11Forwarding ${x11Ok ? 'no' : 'yes'}
+KbdInteractiveAuthentication no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+Banner /etc/issue.net`;
+      }
+    };
+
+    Object.values(checks).forEach(c => {
+      if (c.el) c.el.addEventListener('change', () => {
+        audit();
+        SoundFX.click();
+      });
+    });
+    audit();
+
+    // 2. sysctl Hardening Generator
+    const synChk = document.getElementById('sys-syn');
+    const spoofChk = document.getElementById('sys-spoof');
+    const redirectChk = document.getElementById('sys-redirect');
+    const bcastChk = document.getElementById('sys-bcast');
+    const sysOut = document.getElementById('sysctl-out-config');
+
+    const updateSysctl = () => {
+      if (!sysOut) return;
+      let lines = ['# /etc/sysctl.d/99-security-hardening.conf'];
+      if (synChk && synChk.checked) lines.push('net.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_synack_retries = 2');
+      if (spoofChk && spoofChk.checked) lines.push('net.ipv4.conf.all.rp_filter = 1\nnet.ipv4.conf.default.rp_filter = 1');
+      if (redirectChk && redirectChk.checked) lines.push('net.ipv4.conf.all.accept_redirects = 0\nnet.ipv4.conf.all.send_redirects = 0');
+      if (bcastChk && bcastChk.checked) lines.push('net.ipv4.icmp_echo_ignore_broadcasts = 1');
+      sysOut.textContent = lines.join('\n');
+    };
+
+    [synChk, spoofChk, redirectChk, bcastChk].forEach(el => {
+      if (el) el.addEventListener('change', () => {
+        updateSysctl();
+        SoundFX.click();
+      });
+    });
+    updateSysctl();
+  };
+
+  return { init };
+})();
+
+/* ──────────────────────────────────────────
+   31. MAIN BOOTSTRAPPER
 ────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   SoundFX.init();
@@ -2275,5 +2865,12 @@ document.addEventListener('DOMContentLoaded', () => {
   WireGuardTool.init();
   DnsBench.init();
   initVpnPageEnhancements();
+  NetworkConfigStudio.init();
+  IptablesStudio.init();
+  FirewalldStudio.init();
+  UfwStudio.init();
+  MonitoringStudio.init();
+  HardeningStudio.init();
 });
+
 
