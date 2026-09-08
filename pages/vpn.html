@@ -139,6 +139,37 @@
 <span class="output">PersistentKeepalive = 25</span>
           </div>
         </div>
+
+        <!-- PAIRED WIREGUARD DUAL CONFIG GENERATOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>⚡ Live Paired WireGuard Key & Dual-Config Generator</span>
+              <span class="live-badge"><span class="live-dot"></span> CURVE25519</span>
+            </div>
+            <button class="btn btn-primary" id="btn-wg-generate" style="padding:0.45rem 1rem;font-size:0.8rem;">🔑 Regenerate Full Keypair Set</button>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">WireGuard requires exchanging public keys between server and client. Generate matching cryptographic keypairs and valid ready-to-use configuration files for both endpoints simultaneously.</p>
+
+            <div class="vpn-config-split">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                  <strong style="color:var(--cyan);font-size:0.85rem;">Server Config (/etc/wireguard/wg0.conf)</strong>
+                  <span class="chip">Endpoint :51820</span>
+                </div>
+                <div class="studio-code-box" id="wg-server-output" style="height:220px;"></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                  <strong style="color:var(--green);font-size:0.85rem;">Client Config (/etc/wireguard/client1.conf)</strong>
+                  <span class="chip">Tunnel 10.0.0.2</span>
+                </div>
+                <div class="studio-code-box" id="wg-client-output" style="height:220px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- OPENVPN -->
