@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinuxFirewall — Linux Networking & Firewall Study Portal</title>
+  <meta name="description" content="Master Linux networking and firewall administration. Comprehensive study portal with lessons, labs, and quizzes covering iptables, firewalld, UFW, VPN, and more." />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="wrapper">
+
+  <!-- ── NAV ── -->
+  <nav id="main-nav">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">🛡️</div>
+      Linux<span>Firewall</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">🏠 Home</a></li>
+      <li><a href="pages/network-config.html">🌐 Network</a></li>
+      <li><a href="pages/iptables.html">🔥 iptables</a></li>
+      <li><a href="pages/firewalld.html">🛡️ firewalld</a></li>
+      <li><a href="pages/ufw.html">🔒 UFW</a></li>
+      <li><a href="pages/monitoring.html">📡 Monitor</a></li>
+      <li><a href="pages/vpn.html">🔑 VPN</a></li>
+      <li><a href="pages/hardening.html">⚔️ Harden</a></li>
+    </ul>
+    <div class="nav-progress">
+      <span class="xp-badge">⚡ 0 XP</span>
+    </div>
+    <div class="hamburger" id="ham">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="hero-badge">📚 Linux System Administration</div>
+
+    <h1 class="hero-title">
+      <span class="line1">Master Linux</span>
+      <span class="line2">Networking & Firewall</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      A comprehensive interactive learning portal covering network configuration, iptables, firewalld, UFW, monitoring tools, VPN tunneling, and security hardening — with hands-on labs and quizzes.
+    </p>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">7</div>
+        <div class="stat-label">Modules</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">35+</div>
+        <div class="stat-label">Lab Tasks</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">70+</div>
+        <div class="stat-label">Commands</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">35</div>
+        <div class="stat-label">Quiz Qs</div>
+      </div>
+    </div>
+
+    <div class="hero-cta">
+      <a href="pages/network-config.html" class="btn btn-primary">🚀 Start Learning</a>
+      <a href="#modules" class="btn btn-secondary">📖 Browse Modules</a>
+    </div>
+  </section>
+
+  <!-- ── MODULES ── -->
+  <section class="section" id="modules">
+    <div class="section-header">
+      <div class="section-tag">Curriculum</div>
+      <h2 class="section-title">All Learning Modules</h2>
+      <p class="section-subtitle">Work through each module sequentially, or jump to the topic you need.</p>
+    </div>
+
+    <div class="modules-grid">
+
+      <!-- 1 Network Config -->
+      <a href="pages/network-config.html" class="module-card" data-module="network-config" style="--card-color: #00e5ff">
+        <div class="module-icon-wrap">🌐</div>
+        <div class="module-meta">
+          <span class="module-number">Module 01</span>
+          <span class="module-difficulty diff-beginner">Beginner</span>
+        </div>
+        <h3 class="module-title">Network Configuration</h3>
+        <p class="module-desc">Configure network interfaces, IP addresses, routing, DNS, and DHCP on Linux systems using ip, nmcli, and nmtui.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">ip</span>
+            <span class="topic-tag">nmcli</span>
+            <span class="topic-tag">DNS</span>
+            <span class="topic-tag">routing</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 2 iptables -->
+      <a href="pages/iptables.html" class="module-card" data-module="iptables" style="--card-color: #ff5757">
+        <div class="module-icon-wrap">🔥</div>
+        <div class="module-meta">
+          <span class="module-number">Module 02</span>
+          <span class="module-difficulty diff-inter">Intermediate</span>
+        </div>
+        <h3 class="module-title">iptables & nftables</h3>
+        <p class="module-desc">Master Linux's powerful packet filtering framework. Create rules, manage chains, and build complete firewall policies using iptables and modern nftables.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">iptables</span>
+            <span class="topic-tag">nft</span>
+            <span class="topic-tag">chains</span>
+            <span class="topic-tag">NAT</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 3 firewalld -->
+      <a href="pages/firewalld.html" class="module-card" data-module="firewalld" style="--card-color: #ff9f43">
+        <div class="module-icon-wrap">🛡️</div>
+        <div class="module-meta">
+          <span class="module-number">Module 03</span>
+          <span class="module-difficulty diff-inter">Intermediate</span>
+        </div>
+        <h3 class="module-title">firewalld</h3>
+        <p class="module-desc">Use firewalld's dynamic zone-based firewall management on RHEL/CentOS/Fedora. Configure services, ports, rich rules, and masquerading.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">firewall-cmd</span>
+            <span class="topic-tag">zones</span>
+            <span class="topic-tag">services</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 4 UFW -->
+      <a href="pages/ufw.html" class="module-card" data-module="ufw" style="--card-color: #00ffa3">
+        <div class="module-icon-wrap">🔒</div>
+        <div class="module-meta">
+          <span class="module-number">Module 04</span>
+          <span class="module-difficulty diff-beginner">Beginner</span>
+        </div>
+        <h3 class="module-title">UFW — Uncomplicated Firewall</h3>
+        <p class="module-desc">Quickly manage firewall rules on Ubuntu/Debian with UFW. Set policies, allow/deny services, and use application profiles.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">ufw</span>
+            <span class="topic-tag">profiles</span>
+            <span class="topic-tag">logging</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 5 Monitoring -->
+      <a href="pages/monitoring.html" class="module-card" data-module="monitoring" style="--card-color: #3d8bff">
+        <div class="module-icon-wrap">📡</div>
+        <div class="module-meta">
+          <span class="module-number">Module 05</span>
+          <span class="module-difficulty diff-inter">Intermediate</span>
+        </div>
+        <h3 class="module-title">Network Monitoring & Troubleshooting</h3>
+        <p class="module-desc">Diagnose network issues using ss, tcpdump, nmap, Wireshark, and more. Analyze traffic, check connectivity, and monitor bandwidth.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">ss</span>
+            <span class="topic-tag">tcpdump</span>
+            <span class="topic-tag">nmap</span>
+            <span class="topic-tag">ping</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 6 VPN -->
+      <a href="pages/vpn.html" class="module-card" data-module="vpn" style="--card-color: #9b59ff">
+        <div class="module-icon-wrap">🔑</div>
+        <div class="module-meta">
+          <span class="module-number">Module 06</span>
+          <span class="module-difficulty diff-advanced">Advanced</span>
+        </div>
+        <h3 class="module-title">VPN & Tunneling</h3>
+        <p class="module-desc">Set up secure tunnels with OpenVPN and WireGuard. Configure site-to-site VPNs, SSH tunneling, and IP-in-IP encapsulation.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">WireGuard</span>
+            <span class="topic-tag">OpenVPN</span>
+            <span class="topic-tag">SSH</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- 7 Hardening -->
+      <a href="pages/hardening.html" class="module-card" data-module="hardening" style="--card-color: #ffd32a">
+        <div class="module-icon-wrap">⚔️</div>
+        <div class="module-meta">
+          <span class="module-number">Module 07</span>
+          <span class="module-difficulty diff-advanced">Advanced</span>
+        </div>
+        <h3 class="module-title">Network Security Hardening</h3>
+        <p class="module-desc">Harden Linux network stack against attacks: SSH hardening, fail2ban, port knocking, kernel parameters, and SELinux basics.</p>
+        <div class="module-progress-bar"><div class="module-progress-fill" style="width:0%"></div></div>
+        <div class="module-footer">
+          <div class="module-topics">
+            <span class="topic-tag">fail2ban</span>
+            <span class="topic-tag">sshd</span>
+            <span class="topic-tag">SELinux</span>
+            <span class="topic-tag">sysctl</span>
+          </div>
+          <span class="module-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ── PROGRESS DASHBOARD ── -->
+  <section class="progress-section" id="progress">
+    <div class="progress-grid">
+      <div class="progress-card">
+        <h2 class="sect-title">
+          <span class="sect-icon">📊</span>
+          Your Progress
+        </h2>
+        <div class="progress-modules-list">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <div class="progress-card xp-card">
+        <div class="xp-big">
+          <div class="xp-number">0</div>
+          <div class="xp-label">Total XP Earned</div>
+        </div>
+
+        <div>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Achievements</p>
+          <div class="badge-grid">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <div class="info-box tip" style="margin:0">
+          <div class="info-box-icon">💡</div>
+          <div class="info-box-body">
+            <div class="info-box-title">How to earn XP</div>
+            <div class="info-box-text">Answer quiz questions (+20 XP each) and score 80%+ on a module quiz to earn +150 XP bonus.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-logo">🛡️ Linux<span>Firewall</span></div>
+    <p class="footer-text">A PBL project for Linux System Administration — Networking & Firewall module. Built for students learning real-world Linux sysadmin skills.</p>
+    <div class="footer-links">
+      <a href="pages/network-config.html">Network Config</a>
+      <a href="pages/iptables.html">iptables</a>
+      <a href="pages/firewalld.html">firewalld</a>
+      <a href="pages/ufw.html">UFW</a>
+      <a href="pages/monitoring.html">Monitoring</a>
+      <a href="pages/vpn.html">VPN</a>
+      <a href="pages/hardening.html">Hardening</a>
+    </div>
+    <p style="margin-top:2rem; font-size:0.75rem; color:var(--text-muted)">
+      Linux System Administration · PBL Project · 2026
+    </p>
+  </footer>
+
+</div><!-- /wrapper -->
+<script src="scripts/app.js"></script>
+</body>
+</html>

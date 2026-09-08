@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Network Configuration — LinuxFirewall</title>
+  <meta name="description" content="Learn Linux network configuration: IP addressing, routing, DNS, DHCP using ip, nmcli, and nmtui commands." />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="wrapper">
+
+  <!-- NAV -->
+  <nav>
+    <a href="../index.html" class="nav-logo">
+      <div class="nav-logo-icon">🛡️</div>Linux<span>Firewall</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="../index.html">🏠 Home</a></li>
+      <li><a href="network-config.html" class="active">🌐 Network</a></li>
+      <li><a href="iptables.html">🔥 iptables</a></li>
+      <li><a href="firewalld.html">🛡️ firewalld</a></li>
+      <li><a href="ufw.html">🔒 UFW</a></li>
+      <li><a href="monitoring.html">📡 Monitor</a></li>
+      <li><a href="vpn.html">🔑 VPN</a></li>
+      <li><a href="hardening.html">⚔️ Harden</a></li>
+    </ul>
+    <div class="nav-progress"><span class="xp-badge">⚡ 0 XP</span></div>
+    <div class="hamburger"><span></span><span></span><span></span></div>
+  </nav>
+
+  <div class="lesson-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="lesson-sidebar">
+      <div class="sidebar-title">Module 01</div>
+      <ul class="sidebar-nav">
+        <li><a href="#overview" class="active">📌 Overview</a></li>
+        <li><a href="#interfaces">🔌 Interfaces</a></li>
+        <li><a href="#ip-cmd">🛠️ ip Command</a></li>
+        <li><a href="#nmcli">⚙️ nmcli</a></li>
+        <li><a href="#routing">🗺️ Routing</a></li>
+        <li><a href="#dns">🔍 DNS</a></li>
+        <li><a href="#lab">🧪 Lab Exercise</a></li>
+        <li><a href="#quiz">❓ Quiz</a></li>
+      </ul>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="lesson-main">
+      <div class="lesson-breadcrumb">
+        <a href="../index.html">Home</a>
+        <span class="sep">›</span>
+        <span>Module 01 — Network Configuration</span>
+      </div>
+
+      <header class="lesson-header">
+        <div class="lesson-module-badge">📘 Module 01 of 07</div>
+        <h1 class="lesson-title">Linux <span>Network Configuration</span></h1>
+        <p class="lesson-intro">Learn how to configure network interfaces, assign IP addresses, manage routing tables, and set up DNS on Linux systems. We cover both the legacy <code>ifconfig</code> approach and the modern <code>ip</code> suite, along with NetworkManager tools.</p>
+        <div class="lesson-meta-row">
+          <span class="meta-item">🕐 <strong>~45 min</strong></span>
+          <span class="meta-item">🎯 <strong>Beginner</strong></span>
+          <span class="meta-item">📝 <strong>5 Quiz Questions</strong></span>
+          <span class="meta-item">🧪 <strong>1 Lab Exercise</strong></span>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section class="content-section" data-section="overview" id="overview">
+        <h2 class="sect-title"><span class="sect-icon">📌</span> Overview</h2>
+        <p class="body-text">Networking in Linux is managed at multiple levels: the kernel handles the network stack, while userspace tools configure interfaces, routes, and services. The two primary toolsets are:</p>
+        <ul class="body-list">
+          <li><strong>iproute2</strong> — the modern suite: <code>ip</code>, <code>ss</code>, <code>tc</code></li>
+          <li><strong>NetworkManager</strong> — the high-level daemon: <code>nmcli</code>, <code>nmtui</code></li>
+          <li><strong>net-tools</strong> (legacy) — <code>ifconfig</code>, <code>route</code>, <code>netstat</code></li>
+        </ul>
+        <div class="info-box tip">
+          <div class="info-box-icon">💡</div>
+          <div class="info-box-body">
+            <div class="info-box-title">Modern vs Legacy</div>
+            <div class="info-box-text">Always prefer <code>ip</code> over <code>ifconfig</code> and <code>ss</code> over <code>netstat</code>. The net-tools package is deprecated on most modern distributions.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTERFACES -->
+      <section class="content-section" data-section="interfaces" id="interfaces">
+        <h2 class="sect-title"><span class="sect-icon">🔌</span> Network Interfaces</h2>
+        <p class="body-text">Every network connection is represented as an interface. Common naming conventions:</p>
+        <table class="data-table">
+          <thead><tr><th>Interface</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>lo</td><td>Loopback</td><td>Internal 127.0.0.1 — always present</td></tr>
+            <tr><td>eth0 / ens3</td><td>Ethernet</td><td>Wired NIC — legacy / predictable naming</td></tr>
+            <tr><td>wlan0 / wlp2s0</td><td>Wireless</td><td>Wi-Fi adapter</td></tr>
+            <tr><td>virbr0</td><td>Bridge</td><td>Virtual bridge for VMs</td></tr>
+            <tr><td>docker0</td><td>Bridge</td><td>Docker network bridge</td></tr>
+            <tr><td>tun0 / tap0</td><td>Virtual</td><td>VPN tunnel interfaces</td></tr>
+          </tbody>
+        </table>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="prompt">$ </span><span class="cmd">ip</span> <span class="flag">link</span> show
+<span class="output">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN</span>
+<span class="output">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00</span>
+<span class="output">2: ens3: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP</span>
+<span class="output">    link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff</span>
+<br>
+<span class="prompt">$ </span><span class="cmd">ip</span> <span class="flag">addr</span> show
+<span class="output">2: ens3: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP</span>
+<span class="output">    inet 192.168.1.100/24 brd 192.168.1.255 scope global ens3</span>
+<br>
+<span class="prompt">$ </span><span class="cmd">ip</span> <span class="flag">-s</span> link show ens3  <span class="comment"># show statistics</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- IP COMMAND -->
+      <section class="content-section" data-section="ip-cmd" id="ip-cmd">
+        <h2 class="sect-title"><span class="sect-icon">🛠️</span> The <code>ip</code> Command</h2>
+        <p class="body-text">The <code>ip</code> command from the <strong>iproute2</strong> package is the primary tool for network configuration in modern Linux.</p>
+
+        <div class="cmd-grid">
+          <div class="cmd-card">
+            <div class="cmd-card-title">ip addr add</div>
+            <div class="cmd-card-desc">Assign an IP address to an interface</div>
+            <div class="cmd-card-syntax">ip addr add 192.168.1.10/24 dev ens3</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">ip addr del</div>
+            <div class="cmd-card-desc">Remove an IP address from an interface</div>
+            <div class="cmd-card-syntax">ip addr del 192.168.1.10/24 dev ens3</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">ip link set up/down</div>
+            <div class="cmd-card-desc">Bring interface up or down</div>
+            <div class="cmd-card-syntax">ip link set ens3 up</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">ip route add</div>
+            <div class="cmd-card-desc">Add a static route</div>
+            <div class="cmd-card-syntax">ip route add 10.0.0.0/8 via 192.168.1.1</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">ip route show</div>
+            <div class="cmd-card-desc">Display routing table</div>
+            <div class="cmd-card-syntax">ip route show</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">ip neigh show</div>
+            <div class="cmd-card-desc">Show ARP/neighbor table</div>
+            <div class="cmd-card-syntax">ip neigh show</div>
+          </div>
+        </div>
+
+        <div class="info-box warn">
+          <div class="info-box-icon">⚠️</div>
+          <div class="info-box-body">
+            <div class="info-box-title">Changes are not persistent</div>
+            <div class="info-box-text">Changes made with <code>ip</code> are lost after reboot. To persist them, use NetworkManager (<code>nmcli</code>) or edit configuration files in <code>/etc/netplan/</code> (Ubuntu) or <code>/etc/sysconfig/network-scripts/</code> (RHEL).</div>
+          </div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — configure static IP</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Assign static IP</span>
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> addr add <span class="arg">192.168.1.50/24</span> dev ens3
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> link set ens3 up
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> route add default via <span class="arg">192.168.1.1</span>
+<br>
+<span class="comment"># Verify configuration</span>
+<span class="prompt">$ </span><span class="cmd">ip</span> addr show ens3
+<span class="prompt">$ </span><span class="cmd">ip</span> route show
+<span class="success-out">default via 192.168.1.1 dev ens3</span>
+<span class="success-out">192.168.1.0/24 dev ens3  proto kernel  scope link  src 192.168.1.50</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- NMCLI -->
+      <section class="content-section" data-section="nmcli" id="nmcli">
+        <h2 class="sect-title"><span class="sect-icon">⚙️</span> NetworkManager — nmcli</h2>
+        <p class="body-text">NetworkManager is the standard network management daemon on most modern Linux distros. <code>nmcli</code> is its command-line interface, and <code>nmtui</code> offers a TUI.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — nmcli essentials</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># List all connections</span>
+<span class="prompt">$ </span><span class="cmd">nmcli</span> connection show
+<br>
+<span class="comment"># Show device status</span>
+<span class="prompt">$ </span><span class="cmd">nmcli</span> device status
+<br>
+<span class="comment"># Add a static IP connection</span>
+<span class="prompt">$ </span><span class="cmd">sudo nmcli</span> con add type ethernet \
+    con-name <span class="arg">"static-ens3"</span> \
+    ifname <span class="arg">ens3</span> \
+    ipv4.method manual \
+    ipv4.addresses <span class="arg">"192.168.1.50/24"</span> \
+    ipv4.gateway <span class="arg">"192.168.1.1"</span> \
+    ipv4.dns <span class="arg">"8.8.8.8 8.8.4.4"</span>
+<br>
+<span class="comment"># Activate the connection</span>
+<span class="prompt">$ </span><span class="cmd">sudo nmcli</span> con up <span class="arg">static-ens3</span>
+<br>
+<span class="comment"># Switch to DHCP</span>
+<span class="prompt">$ </span><span class="cmd">sudo nmcli</span> con mod <span class="arg">static-ens3</span> ipv4.method auto
+<span class="prompt">$ </span><span class="cmd">sudo nmcli</span> con up <span class="arg">static-ens3</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROUTING -->
+      <section class="content-section" data-section="routing" id="routing">
+        <h2 class="sect-title"><span class="sect-icon">🗺️</span> Routing</h2>
+        <p class="body-text">Routing determines where network packets are sent. The kernel routing table is consulted for every outgoing packet.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — routing commands</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Show routing table</span>
+<span class="prompt">$ </span><span class="cmd">ip</span> route show
+<span class="output">default via 192.168.1.1 dev ens3 proto dhcp src 192.168.1.100 metric 100</span>
+<span class="output">192.168.1.0/24 dev ens3 proto kernel scope link src 192.168.1.100</span>
+<br>
+<span class="comment"># Add a static route</span>
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> route add <span class="arg">10.10.0.0/16</span> via <span class="arg">192.168.1.254</span>
+<br>
+<span class="comment"># Delete a route</span>
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> route del <span class="arg">10.10.0.0/16</span>
+<br>
+<span class="comment"># Enable IP forwarding (routing between interfaces)</span>
+<span class="prompt">$ </span><span class="cmd">sudo sysctl</span> <span class="flag">-w</span> net.ipv4.ip_forward=1
+<span class="comment"># Persist: echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- DNS -->
+      <section class="content-section" data-section="dns" id="dns">
+        <h2 class="sect-title"><span class="sect-icon">🔍</span> DNS Configuration</h2>
+        <p class="body-text">DNS resolver configuration is managed via <code>/etc/resolv.conf</code> or <code>systemd-resolved</code>.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — DNS commands</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># View current DNS settings</span>
+<span class="prompt">$ </span><span class="cmd">cat</span> /etc/resolv.conf
+<span class="output">nameserver 8.8.8.8</span>
+<span class="output">nameserver 8.8.4.4</span>
+<span class="output">search localdomain</span>
+<br>
+<span class="comment"># Query DNS records</span>
+<span class="prompt">$ </span><span class="cmd">dig</span> A google.com
+<span class="prompt">$ </span><span class="cmd">dig</span> <span class="flag">+short</span> MX gmail.com
+<span class="prompt">$ </span><span class="cmd">nslookup</span> 8.8.8.8
+<br>
+<span class="comment"># systemd-resolved</span>
+<span class="prompt">$ </span><span class="cmd">resolvectl</span> status
+<span class="prompt">$ </span><span class="cmd">resolvectl</span> query google.com
+          </div>
+        </div>
+      </section>
+
+      <!-- LAB -->
+      <section class="content-section" data-section="lab" id="lab">
+        <h2 class="sect-title"><span class="sect-icon">🧪</span> Lab Exercise</h2>
+        <div class="lab-box">
+          <div class="lab-header">
+            <div class="lab-icon">🧪</div>
+            <div>
+              <div class="lab-title">Lab 01 — Configure a Static IP with NetworkManager</div>
+              <div class="lab-subtitle">Estimated time: 15 minutes · Root access required</div>
+            </div>
+          </div>
+          <div class="lab-steps">
+            <div class="lab-step">
+              <div class="lab-step-num">1</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Identify your network interface</div>
+                <div class="lab-step-text">Run <code>ip link show</code> to list all interfaces. Note down the name of your Ethernet interface (e.g., <code>ens3</code>, <code>eth0</code>, <code>enp3s0</code>).</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">2</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Check current IP configuration</div>
+                <div class="lab-step-text">Run <code>ip addr show</code> and <code>ip route show</code> to document the current state.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">3</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Create a static connection profile</div>
+                <div class="lab-step-text">Use <code>nmcli con add</code> to create a new static-IP connection profile on your interface. Use IP <code>192.168.1.200/24</code>, gateway <code>192.168.1.1</code>, DNS <code>8.8.8.8</code>.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">4</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Activate the connection</div>
+                <div class="lab-step-text">Run <code>nmcli con up &lt;con-name&gt;</code>. Verify with <code>ip addr show</code> that the new IP is assigned.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">5</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Test connectivity</div>
+                <div class="lab-step-text">Run <code>ping -c 4 8.8.8.8</code> to test internet connectivity, and <code>dig google.com</code> to verify DNS resolution.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">6</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Restore DHCP</div>
+                <div class="lab-step-text">Modify the connection: <code>nmcli con mod &lt;con-name&gt; ipv4.method auto</code> then reactivate it.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUIZ -->
+      <section class="content-section" data-section="quiz" id="quiz">
+        <h2 class="sect-title"><span class="sect-icon">❓</span> Knowledge Check</h2>
+
+        <div class="completion-banner">
+          <div class="completion-banner-icon">🎉</div>
+          <div class="completion-banner-text"><strong>Module Complete!</strong> You scored 80%+ and earned +150 XP. Proceed to the next module!</div>
+        </div>
+
+        <div class="quiz-box">
+          <div class="quiz-header">
+            <div class="quiz-icon">🧠</div>
+            <div>
+              <div class="quiz-title">Network Configuration Quiz</div>
+              <div class="quiz-subtitle">5 questions · +20 XP per correct answer</div>
+            </div>
+          </div>
+          <div class="quiz-progress-wrap">
+            <span>Question <span class="q-current">1</span> of <span class="q-total">5</span></span>
+            <span class="q-score">Score: 0</span>
+          </div>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:0%"></div></div>
+
+          <div class="quiz-question-wrap">
+            <p class="question-text"></p>
+            <ul class="options-list"></ul>
+            <div class="quiz-explanation"></div>
+            <div class="quiz-actions">
+              <button class="btn btn-ghost" id="quiz-next" disabled>Next →</button>
+            </div>
+          </div>
+
+          <div class="quiz-result">
+            <div class="quiz-score-circle" style="--pct:0%">
+              <div class="quiz-score-text">0%</div>
+            </div>
+            <div class="quiz-result-title"></div>
+            <div class="quiz-result-sub"></div>
+            <button class="btn btn-secondary" id="quiz-restart">🔄 Try Again</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- LESSON NAV -->
+      <div class="lesson-nav">
+        <a href="../index.html" class="lesson-nav-btn">
+          <span class="nav-icon">←</span>
+          <div><span class="nav-dir">Back</span><span class="nav-label">Home</span></div>
+        </a>
+        <a href="iptables.html" class="lesson-nav-btn next">
+          <span class="nav-icon">→</span>
+          <div><span class="nav-dir">Next Module</span><span class="nav-label">iptables & nftables</span></div>
+        </a>
+      </div>
+
+    </main>
+  </div><!-- /lesson-layout -->
+
+  <footer>
+    <div class="footer-logo">🛡️ Linux<span>Firewall</span></div>
+    <p class="footer-text">Linux System Administration · PBL Project · 2026</p>
+  </footer>
+
+</div>
+<script>
+const quizModuleId = 'network-config';
+const quizData = [
+  {
+    question: "Which command from the iproute2 suite is used to display and configure IP addresses on Linux interfaces?",
+    options: ["ifconfig", "ip addr", "netstat", "route"],
+    correct: 1,
+    explanation: "'ip addr' is the modern iproute2 command for viewing and managing IP addresses. 'ifconfig' is the legacy net-tools equivalent and is deprecated."
+  },
+  {
+    question: "What does the command 'ip route add default via 192.168.1.1' do?",
+    options: [
+      "Adds a DNS server at 192.168.1.1",
+      "Sets the loopback address",
+      "Sets 192.168.1.1 as the default gateway",
+      "Deletes all routes"
+    ],
+    correct: 2,
+    explanation: "This command adds a default route (0.0.0.0/0) through the gateway 192.168.1.1, meaning all traffic without a more specific route will be sent there."
+  },
+  {
+    question: "Which command makes changes to network configuration persistent across reboots using NetworkManager?",
+    options: ["ip link set", "nmcli con add", "sysctl -w", "ifup"],
+    correct: 1,
+    explanation: "'nmcli con add' creates a persistent connection profile stored by NetworkManager that survives reboots. Changes made with 'ip' are temporary."
+  },
+  {
+    question: "To enable IP packet forwarding between interfaces permanently, you should add which line to /etc/sysctl.conf?",
+    options: [
+      "net.ipv4.forward=1",
+      "ip_forward=enabled",
+      "net.ipv4.ip_forward=1",
+      "kernel.ip_forward=1"
+    ],
+    correct: 2,
+    explanation: "The correct sysctl parameter is 'net.ipv4.ip_forward=1'. Adding it to /etc/sysctl.conf makes it persist across reboots. Apply immediately with 'sysctl -p'."
+  },
+  {
+    question: "Which file contains the DNS resolver configuration including nameservers on Linux?",
+    options: ["/etc/hosts", "/etc/resolv.conf", "/etc/dns.conf", "/etc/nsswitch.conf"],
+    correct: 1,
+    explanation: "/etc/resolv.conf contains DNS resolver settings including 'nameserver' entries. On systemd systems this may be managed by systemd-resolved."
+  }
+];
+</script>
+<script src="../scripts/app.js"></script>
+</body>
+</html>
