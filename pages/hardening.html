@@ -133,6 +133,89 @@
             <div class="info-box-text">Make absolutely sure your SSH public key is in <code>~/.ssh/authorized_keys</code> and you can log in with it before disabling password authentication. Test in a new terminal window first!</div>
           </div>
         </div>
+
+        <!-- SSHD SECURITY AUDITOR STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🛡️ Interactive sshd_config CIS Security Auditor</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE COMPLIANCE SCORE</span>
+            </div>
+            <span class="chip">CIS Benchmark Level 2</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Toggle SSH server configuration directives to calculate your system's real-time security score and generate an audited production configuration file.</p>
+
+            <div class="sec-meter-wrap">
+              <div class="sec-meter-circle high" id="sshd-score-circle">
+                <span id="sshd-score-val">100%</span>
+              </div>
+              <div>
+                <div style="font-weight:bold;font-size:1rem;color:var(--text-primary);">OpenSSH Daemon Security Posture</div>
+                <ul id="sshd-audit-advice" style="margin-top:0.4rem;padding-left:1.2rem;"></ul>
+              </div>
+            </div>
+
+            <div class="widget-studio-split">
+              <div>
+                <div style="font-size:0.85rem;font-weight:700;color:var(--cyan);margin-bottom:0.75rem;">Security Directives (Toggle to Test):</div>
+                
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Disable Root Login (PermitRootLogin no)</div>
+                    <div class="toggle-desc">Blocks attackers from guessing the universal superuser account</div>
+                  </div>
+                  <input type="checkbox" id="chk-ssh-root" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Enforce Key-Only Auth (PasswordAuthentication no)</div>
+                    <div class="toggle-desc">Eliminates vulnerability to all credential stuffing & dictionary sprays</div>
+                  </div>
+                  <input type="checkbox" id="chk-ssh-pass" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Move from Default Port 22 (Port 2222)</div>
+                    <div class="toggle-desc">Cuts automated scanner noise and botnet logs by >95%</div>
+                  </div>
+                  <input type="checkbox" id="chk-ssh-port" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Limit Auth Retries (MaxAuthTries 3)</div>
+                    <div class="toggle-desc">Closes session immediately after 3 unsuccessful attempts</div>
+                  </div>
+                  <input type="checkbox" id="chk-ssh-tries" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Disable X11 Forwarding (X11Forwarding no)</div>
+                    <div class="toggle-desc">Prevents remote display snooping and X11 keystroke sniffing</div>
+                  </div>
+                  <input type="checkbox" id="chk-ssh-x11" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Require Public Key (PubkeyAuthentication yes)</div>
+                    <div class="toggle-desc">Enforces Ed25519 / RSA 4096-bit public key signatures</div>
+                  </div>
+                  <input type="checkbox" id="chk-ssh-key" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+              </div>
+
+              <div>
+                <div style="font-size:0.85rem;font-weight:700;color:var(--green);margin-bottom:0.75rem;">Compiled Hardened Configuration:</div>
+                <div class="studio-code-box" id="sshd-out-config" style="height:310px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- SYSCTL -->
@@ -179,11 +262,66 @@
 <span class="prompt">$ </span><span class="cmd">sudo sysctl</span> <span class="flag">--system</span>
           </div>
         </div>
+
+        <!-- SYSCTL HARDENING STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>⚙️ Interactive Kernel sysctl Hardening Profile Builder</span>
+              <span class="live-badge"><span class="live-dot"></span> KERNEL PARAMETERS</span>
+            </div>
+            <span class="chip">/etc/sysctl.d/99-security.conf</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Select kernel-level network defenses against IP spoofing, SYN floods, Smurf broadcast amplification, and ICMP routing redirects.</p>
+
+            <div class="widget-studio-split">
+              <div>
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">TCP SYN Cookie Protection (tcp_syncookies = 1)</div>
+                    <div class="toggle-desc">Mitigates SYN floods by issuing cryptographic cookies without allocating kernel memory</div>
+                  </div>
+                  <input type="checkbox" id="sys-syn" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Strict Reverse Path Filtering (rp_filter = 1)</div>
+                    <div class="toggle-desc">Validates packet source IP against routing table to prevent IP address spoofing</div>
+                  </div>
+                  <input type="checkbox" id="sys-spoof" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Ignore ICMP Echo Broadcasts (icmp_echo_ignore_broadcasts = 1)</div>
+                    <div class="toggle-desc">Stops attacker from using your host as an amplifier in Smurf DDoS attacks</div>
+                  </div>
+                  <input type="checkbox" id="sys-bcast" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+
+                <div class="toggle-row">
+                  <div>
+                    <div class="toggle-label">Block ICMP Redirects (accept_redirects = 0)</div>
+                    <div class="toggle-desc">Prevents rogue malicious routers from hijacking traffic routing paths</div>
+                  </div>
+                  <input type="checkbox" id="sys-redirect" checked style="transform:scale(1.3);cursor:pointer;" />
+                </div>
+              </div>
+
+              <div>
+                <div style="font-size:0.85rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">Compiled sysctl Profile:</div>
+                <div class="studio-code-box" id="sysctl-out-config" style="height:200px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- FAIL2BAN -->
       <section class="content-section" data-section="fail2ban" id="fail2ban">
-        <h2 class="sect-title"><span class="sect-icon">🚫</span> fail2ban</h2>
+        <h2 class="sect-title"><span class="sect-icon">🚫</span> fail2ban & Intrusion Defense</h2>
         <p class="body-text">fail2ban scans log files and automatically bans IPs that show signs of malicious behavior (too many failed logins, port scans, etc.) using firewall rules.</p>
 
         <div class="terminal">
@@ -227,6 +365,36 @@
 <br>
 <span class="comment"># Manually unban an IP</span>
 <span class="prompt">$ </span><span class="cmd">sudo fail2ban-client</span> set sshd unbanip 203.0.113.5
+          </div>
+        </div>
+
+        <!-- REALTIME INTRUSION DEFENSE SIMULATOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🚨 Live Threat Detection & fail2ban Defense Sandbox</span>
+              <span class="live-badge"><span class="live-dot"></span> ACTIVE JAIL: sshd</span>
+            </div>
+            <button class="btn btn-secondary" id="btn-clear-attack-log" style="padding:0.35rem 0.8rem;font-size:0.75rem;">Clear Syslog</button>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem;">Simulate real-world network attacks against your Linux machine to observe how <code>fail2ban</code> monitors authentication logs and dynamically injects firewall <code>REJECT</code> rules.</p>
+
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+              <button class="btn btn-primary attack-btn" id="btn-sim-ssh">💥 Simulate SSH Brute Force (5x Fails)</button>
+              <button class="btn btn-secondary attack-btn" id="btn-sim-syn">🌊 Simulate TCP SYN Flood</button>
+              <button class="btn btn-secondary attack-btn" id="btn-sim-scan">🔍 Simulate Stealth Port Recon</button>
+            </div>
+
+            <div class="log-stream-terminal" style="height:220px;">
+              <div class="log-stream-bar">
+                <span style="font-size:0.78rem;font-family:var(--font-mono);color:var(--text-muted);">tail -f /var/log/auth.log &amp; fail2ban-server</span>
+                <span class="live-badge" style="font-size:0.7rem;"><span class="live-dot"></span> MONITORING</span>
+              </div>
+              <div class="log-stream-body" id="attack-log-stream">
+                <div class="log-entry"><span class="log-time">system:</span> <span class="log-info">[READY]</span> fail2ban jail [sshd] initialized on /var/log/auth.log. MaxRetry=3, BanTime=3600s.</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
