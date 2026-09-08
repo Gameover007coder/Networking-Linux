@@ -140,6 +140,38 @@
 <span class="prompt">$ </span><span class="cmd">sudo firewall-cmd</span> --zone=public --list-all
           </div>
         </div>
+
+        <!-- ZONE EXPLORER STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🗺️ Interactive firewalld Zone Inspector</span>
+              <span class="live-badge"><span class="live-dot"></span> DYNAMIC ZONES</span>
+            </div>
+            <span class="chip">Trust Hierarchies</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Switch between firewalld predefined security zones to inspect trust level ratings, default targets, and pre-packaged services.</p>
+
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;">
+              <label class="studio-label" for="fwd-zone-select" style="margin-bottom:0;">Select Security Zone:</label>
+              <select id="fwd-zone-select" class="studio-select" style="max-width:280px;">
+                <option value="drop">drop (Zero Trust / Drop All)</option>
+                <option value="block">block (Reject All with ICMP)</option>
+                <option value="public" selected>public (Default / Restricted)</option>
+                <option value="external">external (WAN Router / Masquerade)</option>
+                <option value="dmz">dmz (Demilitarized Public Zone)</option>
+                <option value="internal">internal (Trusted Local Network)</option>
+                <option value="trusted">trusted (Maximum Trust / Accept All)</option>
+              </select>
+            </div>
+
+            <div id="fwd-zone-display"></div>
+
+            <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">Generated Admin Commands:</div>
+            <div class="studio-code-box" id="fwd-zone-cmd"></div>
+          </div>
+        </div>
       </section>
 
       <!-- SERVICES -->
@@ -244,6 +276,49 @@
 <br>
 <span class="comment"># List rich rules</span>
 <span class="prompt">$ </span><span class="cmd">sudo firewall-cmd</span> --zone=public --list-rich-rules
+          </div>
+        </div>
+
+        <!-- RICH RULE STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>📜 Interactive firewalld Rich Rule Studio</span>
+              <span class="live-badge"><span class="live-dot"></span> REALTIME SYNTAX</span>
+            </div>
+            <span class="chip">Granular Access Control</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Construct complex granular rich rules with specific source networks, service bindings, and action targets.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+              <div>
+                <label class="studio-label" for="fwd-rr-subnet">Source Subnet / IP</label>
+                <input type="text" id="fwd-rr-subnet" class="studio-input" value="192.168.1.0/24" placeholder="e.g. 192.168.1.0/24" />
+              </div>
+              <div>
+                <label class="studio-label" for="fwd-rr-service">Service Name</label>
+                <select id="fwd-rr-service" class="studio-select">
+                  <option value="ssh">ssh (Port 22)</option>
+                  <option value="http">http (Port 80)</option>
+                  <option value="https">https (Port 443)</option>
+                  <option value="mysql">mysql (Port 3306)</option>
+                  <option value="postgresql">postgresql (Port 5432)</option>
+                  <option value="wireguard">wireguard (Port 51820)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="fwd-rr-action">Action Target</label>
+                <select id="fwd-rr-action" class="studio-select">
+                  <option value="accept">accept (Allow Connection)</option>
+                  <option value="reject">reject (Send ICMP Error)</option>
+                  <option value="drop">drop (Silent Blackhole)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">Generated Command:</div>
+            <div class="studio-code-box" id="fwd-rr-output"></div>
           </div>
         </div>
       </section>
