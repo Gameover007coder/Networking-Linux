@@ -188,6 +188,54 @@
 <span class="success-out">192.168.1.0/24 dev ens3  proto kernel  scope link  src 192.168.1.50</span>
           </div>
         </div>
+
+        <!-- INTERACTIVE INTERFACE CONFIGURATOR STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>⚡ Live Interface & Network Config Studio</span>
+              <span class="live-badge"><span class="live-dot"></span> REALTIME SYNTAX</span>
+            </div>
+            <span class="chip">iproute2 + NetworkManager + Netplan</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Enter interface parameters to generate equivalent production commands for temporary runtime (<code>ip</code>), persistent RedHat/Debian NetworkManager (<code>nmcli</code>), and modern Ubuntu (<code>netplan</code>) simultaneously.</p>
+            
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+              <div>
+                <label class="studio-label" for="ncs-iface">Interface Name</label>
+                <input type="text" id="ncs-iface" class="studio-input" value="ens3" placeholder="e.g. ens3, eth0" />
+              </div>
+              <div>
+                <label class="studio-label" for="ncs-ip">IPv4 / CIDR</label>
+                <input type="text" id="ncs-ip" class="studio-input" value="192.168.1.50/24" placeholder="e.g. 192.168.1.50/24" />
+              </div>
+              <div>
+                <label class="studio-label" for="ncs-gw">Default Gateway</label>
+                <input type="text" id="ncs-gw" class="studio-input" value="192.168.1.1" placeholder="e.g. 192.168.1.1" />
+              </div>
+              <div>
+                <label class="studio-label" for="ncs-dns">DNS Resolvers</label>
+                <input type="text" id="ncs-dns" class="studio-input" value="8.8.8.8 1.1.1.1" placeholder="e.g. 8.8.8.8 1.1.1.1" />
+              </div>
+            </div>
+
+            <div class="widget-studio-split" style="grid-template-columns:1fr 1fr 1fr;">
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">1. iproute2 (Runtime)</div>
+                <div class="studio-code-box" id="ncs-out-ip"></div>
+              </div>
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--purple);margin-bottom:0.4rem;">2. NetworkManager (Persistent)</div>
+                <div class="studio-code-box" id="ncs-out-nmcli"></div>
+              </div>
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--green);margin-bottom:0.4rem;">3. Netplan YAML (Ubuntu)</div>
+                <div class="studio-code-box" id="ncs-out-netplan"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- NMCLI -->
@@ -229,8 +277,8 @@
 
       <!-- ROUTING -->
       <section class="content-section" data-section="routing" id="routing">
-        <h2 class="sect-title"><span class="sect-icon">🗺️</span> Routing</h2>
-        <p class="body-text">Routing determines where network packets are sent. The kernel routing table is consulted for every outgoing packet.</p>
+        <h2 class="sect-title"><span class="sect-icon">🗺️</span> Routing & Next-Hop Decision</h2>
+        <p class="body-text">Routing determines where network packets are sent. The Linux kernel evaluates destination IPs against the routing table using the <strong>Longest Prefix Match (LPM)</strong> algorithm.</p>
 
         <div class="terminal">
           <div class="terminal-bar">
@@ -255,11 +303,44 @@
 <span class="comment"># Persist: echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf</span>
           </div>
         </div>
+
+        <!-- ROUTING DECISION EVALUATOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🎯 Interactive Kernel Route Evaluator</span>
+              <span class="live-badge"><span class="live-dot"></span> KERNEL SIMULATION</span>
+            </div>
+            <span class="chip">Longest Prefix Match (LPM)</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem;">Enter any target IP address to see how the Linux kernel selects the egress interface and next-hop gateway based on metric priority and subnet mask length.</p>
+            
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+              <div style="flex:1;min-width:240px;">
+                <label class="studio-label" for="route-eval-dst">Destination IP to Route</label>
+                <input type="text" id="route-eval-dst" class="studio-input" value="10.10.42.1" placeholder="e.g. 10.10.42.1, 192.168.1.200, 8.8.8.8, 127.0.0.1" />
+              </div>
+              <button class="btn btn-primary" id="route-eval-btn" style="padding:0.65rem 1.25rem;">🔍 Evaluate Next-Hop</button>
+            </div>
+
+            <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+              <span style="font-size:0.75rem;color:var(--text-muted);align-self:center;">Try presets:</span>
+              <button class="chip" onclick="document.getElementById('route-eval-dst').value='192.168.1.200';document.getElementById('route-eval-btn').click();" style="cursor:pointer;">192.168.1.200 (LAN)</button>
+              <button class="chip" onclick="document.getElementById('route-eval-dst').value='10.10.5.88';document.getElementById('route-eval-btn').click();" style="cursor:pointer;">10.10.5.88 (Branch /16)</button>
+              <button class="chip" onclick="document.getElementById('route-eval-dst').value='10.0.0.2';document.getElementById('route-eval-btn').click();" style="cursor:pointer;">10.0.0.2 (VPN wg0)</button>
+              <button class="chip" onclick="document.getElementById('route-eval-dst').value='1.1.1.1';document.getElementById('route-eval-btn').click();" style="cursor:pointer;">1.1.1.1 (Internet Default)</button>
+              <button class="chip" onclick="document.getElementById('route-eval-dst').value='127.0.0.1';document.getElementById('route-eval-btn').click();" style="cursor:pointer;">127.0.0.1 (Loopback)</button>
+            </div>
+
+            <div id="route-eval-result"></div>
+          </div>
+        </div>
       </section>
 
       <!-- DNS -->
       <section class="content-section" data-section="dns" id="dns">
-        <h2 class="sect-title"><span class="sect-icon">🔍</span> DNS Configuration</h2>
+        <h2 class="sect-title"><span class="sect-icon">🔍</span> DNS Configuration & Resolver Benchmark</h2>
         <p class="body-text">DNS resolver configuration is managed via <code>/etc/resolv.conf</code> or <code>systemd-resolved</code>.</p>
 
         <div class="terminal">
@@ -283,6 +364,67 @@
 <span class="comment"># systemd-resolved</span>
 <span class="prompt">$ </span><span class="cmd">resolvectl</span> status
 <span class="prompt">$ </span><span class="cmd">resolvectl</span> query google.com
+          </div>
+        </div>
+
+        <!-- DNS BENCHMARK WIDGET -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>📡 Live DNS Resolver & Anycast Benchmark</span>
+              <span class="live-badge"><span class="live-dot"></span> REALTIME LATENCY</span>
+            </div>
+            <span class="chip">DoH / DNSSEC / Anycast</span>
+          </div>
+          <div class="widget-studio-body">
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+              <input type="text" id="dns-domain-input" class="studio-input" value="kernel.org" placeholder="Domain name (e.g. kernel.org, debian.org, github.com)" style="flex:1;min-width:240px;" />
+              <button class="btn btn-primary" id="btn-dns-test" style="padding:0.6rem 1.25rem;">⚡ Benchmark Nameservers</button>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table dns-bench-table">
+                <thead>
+                  <tr>
+                    <th>Resolver Provider</th>
+                    <th>IPv4 Address</th>
+                    <th>Round-Trip Latency</th>
+                    <th>Security Features</th>
+                    <th>Simulated A-Record</th>
+                  </tr>
+                </thead>
+                <tbody id="dns-bench-tbody">
+                  <tr>
+                    <td><strong>Cloudflare</strong></td>
+                    <td><code class="chip">1.1.1.1</code></td>
+                    <td><strong style="color:var(--green)">12 ms</strong><div class="dns-bar-wrap"><div class="dns-bar-fill" style="width:48%;background:var(--green)"></div></div></td>
+                    <td><span style="font-size:0.78rem;color:var(--text-secondary);">DoH / DNSSEC / Privacy</span></td>
+                    <td><span class="chip" style="font-size:0.75rem;">A: 198.51.100.24</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Google Public DNS</strong></td>
+                    <td><code class="chip">8.8.8.8</code></td>
+                    <td><strong style="color:var(--cyan)">15 ms</strong><div class="dns-bar-wrap"><div class="dns-bar-fill" style="width:60%;background:var(--cyan)"></div></div></td>
+                    <td><span style="font-size:0.78rem;color:var(--text-secondary);">Global Anycast / Fast</span></td>
+                    <td><span class="chip" style="font-size:0.75rem;">A: 198.51.100.24</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Quad9 Security</strong></td>
+                    <td><code class="chip">9.9.9.9</code></td>
+                    <td><strong style="color:var(--blue)">19 ms</strong><div class="dns-bar-wrap"><div class="dns-bar-fill" style="width:76%;background:var(--blue)"></div></div></td>
+                    <td><span style="font-size:0.78rem;color:var(--text-secondary);">Malware &amp; Phishing Block</span></td>
+                    <td><span class="chip" style="font-size:0.75rem;">A: 198.51.100.24</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>systemd-resolved</strong></td>
+                    <td><code class="chip">127.0.0.53</code></td>
+                    <td><strong style="color:var(--green)">1 ms</strong><div class="dns-bar-wrap"><div class="dns-bar-fill" style="width:10%;background:var(--green)"></div></div></td>
+                    <td><span style="font-size:0.78rem;color:var(--text-secondary);">Local Kernel Cache Hit</span></td>
+                    <td><span class="chip" style="font-size:0.75rem;">A: 198.51.100.24</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
