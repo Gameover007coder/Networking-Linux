@@ -97,6 +97,74 @@
             <text x="350" y="130" text-anchor="middle" fill="#4a5880" font-size="11">Netfilter packet flow</text>
           </svg>
         </div>
+
+        <!-- NETFILTER PACKET TRAVERSAL SIMULATOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>⚡ Interactive Kernel Netfilter Packet Traversal Simulator</span>
+              <span class="live-badge"><span class="live-dot"></span> KERNEL HOOKS</span>
+            </div>
+            <span class="chip">Prerouting · Input · Forward · Output · Postrouting</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem;">Select a simulated packet type to watch the exact traversal sequence through Linux netfilter hook points and inspect the firewall rule evaluation in real time.</p>
+
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;">
+              <label class="studio-label" for="nf-packet-select" style="margin-bottom:0;">Simulated Packet:</label>
+              <select id="nf-packet-select" class="studio-select" style="max-width:340px;">
+                <option value="http">🌐 Inbound HTTP (Port 80 to Web Server)</option>
+                <option value="ssh">🔑 Established SSH Session (Port 22 Conntrack)</option>
+                <option value="blocked">🚫 Insecure Telnet Probe (Port 23 from Untrusted IP)</option>
+                <option value="forward">🔄 NAT Router Egress (Client 10.0.0.2 to Internet)</option>
+              </select>
+              <button class="btn btn-primary" id="nf-send-btn" style="padding:0.6rem 1.25rem;">🚀 Transmit Test Packet</button>
+            </div>
+
+            <!-- Hook Flow Nodes -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.75rem;margin:1.5rem 0;">
+              <div class="nf-node" id="nf-ingress" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 1</div>
+                <strong style="color:var(--cyan);font-size:0.85rem;">NIC Ingress</strong>
+              </div>
+              <div class="nf-node" id="nf-preroute" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 2</div>
+                <strong style="color:var(--cyan);font-size:0.85rem;">PREROUTING</strong>
+              </div>
+              <div class="nf-node" id="nf-routing" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 3</div>
+                <strong style="color:var(--yellow);font-size:0.85rem;">Route Decision</strong>
+              </div>
+              <div class="nf-node" id="nf-input" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 4A</div>
+                <strong style="color:var(--green);font-size:0.85rem;">INPUT Chain</strong>
+              </div>
+              <div class="nf-node" id="nf-forward" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 4B</div>
+                <strong style="color:var(--purple);font-size:0.85rem;">FORWARD</strong>
+              </div>
+              <div class="nf-node" id="nf-postroute" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 5</div>
+                <strong style="color:var(--cyan);font-size:0.85rem;">POSTROUTING</strong>
+              </div>
+              <div class="nf-node" id="nf-socket" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">TARGET</div>
+                <strong style="color:var(--green);font-size:0.85rem;">Local Socket</strong>
+              </div>
+            </div>
+
+            <!-- Verdict Display -->
+            <div style="padding:1rem;background:rgba(0,0,0,0.4);border-radius:6px;border-left:3px solid var(--cyan);">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                <div style="font-weight:bold;color:var(--text-primary);">Kernel Verdict: <span id="nf-verdict-result"><span class="chip" style="color:var(--green)">ACCEPTED</span></span></div>
+                <code id="nf-rule-result" style="color:var(--cyan);font-size:0.8rem;">iptables -A INPUT -p tcp --dport 80 -j ACCEPT</code>
+              </div>
+              <div id="nf-exp-result" style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.4rem;">
+                Packet enters ens3 -> PREROUTING table -> Routing evaluates destination as 192.168.1.150 (Local Host) -> Sent to INPUT chain -> Matches rule accepting TCP dport 80 -> Delivered to local Nginx socket.
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- TABLES & CHAINS -->
@@ -180,12 +248,72 @@
             <div class="info-box-text">Always allow your current SSH session (port 22) before setting INPUT policy to DROP. Work on a physical machine or via console when first configuring firewall rules.</div>
           </div>
         </div>
+
+        <!-- DUAL IPTABLES & NFTABLES RULE CONVERTER STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🔄 Dual Firewall Rule Studio: iptables ⟷ nftables</span>
+              <span class="live-badge"><span class="live-dot"></span> REALTIME TRANSLATOR</span>
+            </div>
+            <span class="chip">Modern Migration Tool</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Modern Linux distributions are phasing out legacy iptables in favor of nftables. Design your packet filtering rule below and see both syntaxes generated live.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+              <div>
+                <label class="studio-label" for="ipst-chain">Netfilter Chain</label>
+                <select id="ipst-chain" class="studio-select">
+                  <option value="INPUT">INPUT (Local Inbound)</option>
+                  <option value="OUTPUT">OUTPUT (Local Outbound)</option>
+                  <option value="FORWARD">FORWARD (Routing Through)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-proto">Protocol</label>
+                <select id="ipst-proto" class="studio-select">
+                  <option value="tcp">TCP (Reliable Stream)</option>
+                  <option value="udp">UDP (Datagram)</option>
+                  <option value="icmp">ICMP (Ping / Diagnostics)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-port">Port Number</label>
+                <input type="text" id="ipst-port" class="studio-input" value="22" placeholder="e.g. 22, 80, 443" />
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-src">Source Subnet</label>
+                <input type="text" id="ipst-src" class="studio-input" value="192.168.1.0/24" placeholder="e.g. 192.168.1.0/24 or any" />
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-action">Action Target</label>
+                <select id="ipst-action" class="studio-select">
+                  <option value="ACCEPT">ACCEPT (Allow)</option>
+                  <option value="DROP">DROP (Silent Discard)</option>
+                  <option value="REJECT">REJECT (Send Error)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="widget-studio-split">
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">🔥 Classic iptables Command</div>
+                <div class="studio-code-box" id="ipst-out-iptables"></div>
+              </div>
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--green);margin-bottom:0.4rem;">⚡ Modern nftables Rule</div>
+                <div class="studio-code-box" id="ipst-out-nft"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- NAT -->
       <section class="content-section" data-section="nat" id="nat">
-        <h2 class="sect-title"><span class="sect-icon">🔄</span> NAT & Masquerading</h2>
-        <p class="body-text">NAT allows a Linux machine to act as a router/gateway, sharing internet access or forwarding ports.</p>
+        <h2 class="sect-title"><span class="sect-icon">🔄</span> NAT, Masquerading & Connection Tracking</h2>
+        <p class="body-text">NAT allows a Linux machine to act as a router/gateway, sharing internet access or forwarding ports. The kernel's <strong>conntrack</strong> subsystem tracks stateful bi-directional streams.</p>
 
         <div class="terminal">
           <div class="terminal-bar">
@@ -208,6 +336,37 @@
 <span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-t</span> nat <span class="flag">-A</span> PREROUTING \
     <span class="flag">-p</span> tcp <span class="flag">--dport</span> 80 \
     <span class="flag">-j</span> DNAT <span class="flag">--to-destination</span> 10.0.0.10:8080
+          </div>
+        </div>
+
+        <!-- REALTIME CONNTRACK INSPECTOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>📡 Live Kernel Conntrack Table Inspector</span>
+              <span class="live-badge"><span class="live-dot"></span> /proc/net/nf_conntrack</span>
+            </div>
+            <span class="chip">Stateful Packet Inspection</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem;">Real-time view of active TCP and UDP streams registered in the Linux Netfilter connection tracking table with live countdown timers.</p>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table realtime-table">
+                <thead>
+                  <tr>
+                    <th>Proto</th>
+                    <th>Source IP:Port</th>
+                    <th>Destination IP:Port</th>
+                    <th>Conntrack State</th>
+                    <th>TCP Timeout</th>
+                  </tr>
+                </thead>
+                <tbody id="conntrack-sim-body">
+                  <!-- Filled and updated dynamically by IptablesStudio -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
