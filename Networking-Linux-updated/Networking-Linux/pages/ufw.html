@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UFW — LinuxFirewall</title>
+  <meta name="description" content="Learn UFW (Uncomplicated Firewall) for Ubuntu and Debian: policies, rules, application profiles, and logging." />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="wrapper">
+
+  <nav>
+    <a href="../index.html" class="nav-logo"><div class="nav-logo-icon">🛡️</div>Linux<span>Firewall</span></a>
+    <ul class="nav-links">
+      <li><a href="../index.html">🏠 Home</a></li>
+      <li><a href="network-config.html">🌐 Network</a></li>
+      <li><a href="iptables.html">🔥 iptables</a></li>
+      <li><a href="firewalld.html">🛡️ firewalld</a></li>
+      <li><a href="ufw.html" class="active">🔒 UFW</a></li>
+      <li><a href="monitoring.html">📡 Monitor</a></li>
+      <li><a href="vpn.html">🔑 VPN</a></li>
+      <li><a href="hardening.html">⚔️ Harden</a></li>
+    </ul>
+    <div class="nav-progress"><span class="xp-badge">⚡ 0 XP</span></div>
+    <div class="hamburger"><span></span><span></span><span></span></div>
+  </nav>
+
+  <div class="lesson-layout">
+    <aside class="lesson-sidebar">
+      <div class="sidebar-title">Module 04</div>
+      <ul class="sidebar-nav">
+        <li><a href="#overview" class="active">📌 Overview</a></li>
+        <li><a href="#setup">🔧 Setup & Enable</a></li>
+        <li><a href="#rules">📝 Allow & Deny Rules</a></li>
+        <li><a href="#app-profiles">📦 App Profiles</a></li>
+        <li><a href="#advanced">⚡ Advanced Rules</a></li>
+        <li><a href="#logging">📋 Logging</a></li>
+        <li><a href="#lab">🧪 Lab Exercise</a></li>
+        <li><a href="#quiz">❓ Quiz</a></li>
+      </ul>
+    </aside>
+
+    <main class="lesson-main">
+      <div class="lesson-breadcrumb">
+        <a href="../index.html">Home</a><span class="sep">›</span><span>Module 04 — UFW</span>
+      </div>
+
+      <header class="lesson-header">
+        <div class="lesson-module-badge">🔒 Module 04 of 07</div>
+        <h1 class="lesson-title">UFW — <span>Uncomplicated Firewall</span></h1>
+        <p class="lesson-intro">UFW provides a simplified frontend to iptables, making firewall configuration easy and accessible on Ubuntu and Debian-based systems. Despite its simplicity, it's fully capable for most use cases.</p>
+        <div class="lesson-meta-row">
+          <span class="meta-item">🕐 <strong>~35 min</strong></span>
+          <span class="meta-item">🎯 <strong>Beginner</strong></span>
+          <span class="meta-item">📝 <strong>5 Quiz Questions</strong></span>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section class="content-section" data-section="overview" id="overview">
+        <h2 class="sect-title"><span class="sect-icon">📌</span> Overview</h2>
+        <p class="body-text">UFW (Uncomplicated Firewall) ships with Ubuntu and is the recommended firewall tool for Debian-based systems. It wraps iptables with a much simpler syntax.</p>
+        <ul class="body-list">
+          <li><strong>Default policy</strong>: deny all incoming, allow all outgoing</li>
+          <li><strong>Rule persistence</strong>: all rules are automatically saved</li>
+          <li><strong>App profiles</strong>: pre-defined rules for common services</li>
+          <li><strong>IPv6 support</strong>: handles both IPv4 and IPv6</li>
+        </ul>
+        <div class="info-box warn">
+          <div class="info-box-icon">⚠️</div>
+          <div class="info-box-body">
+            <div class="info-box-title">Conflict with firewalld/iptables</div>
+            <div class="info-box-text">Don't run UFW alongside firewalld or manage iptables directly while UFW is active. Use only one firewall management tool at a time.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETUP -->
+      <section class="content-section" data-section="setup" id="setup">
+        <h2 class="sect-title"><span class="sect-icon">🔧</span> Setup & Enable</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — UFW setup</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Install UFW (if not already present)</span>
+<span class="prompt">$ </span><span class="cmd">sudo apt install</span> ufw
+<br>
+<span class="comment"># Check current status</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> status verbose
+<span class="output">Status: inactive</span>
+<br>
+<span class="comment"># IMPORTANT: Allow SSH BEFORE enabling UFW!</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow ssh
+<span class="success-out">Rules updated</span>
+<span class="success-out">Rules updated (v6)</span>
+<br>
+<span class="comment"># Set default policies</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> default deny incoming
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> default allow outgoing
+<br>
+<span class="comment"># Enable UFW</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> enable
+<span class="output">Command may disrupt existing ssh connections. Proceed with operation (y|n)? y</span>
+<span class="success-out">Firewall is active and enabled on system startup</span>
+<br>
+<span class="comment"># Disable UFW</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> disable
+<br>
+<span class="comment"># Reset all rules</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> reset
+          </div>
+        </div>
+      </section>
+
+      <!-- RULES -->
+      <section class="content-section" data-section="rules" id="rules">
+        <h2 class="sect-title"><span class="sect-icon">📝</span> Allow & Deny Rules</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — UFW allow/deny rules</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Allow by port number</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow 80/tcp
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow 443/tcp
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow 8080
+<br>
+<span class="comment"># Allow by service name</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow http
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow https
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow ftp
+<br>
+<span class="comment"># Deny a port</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> deny 23/tcp
+<br>
+<span class="comment"># Allow from specific IP</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow from 203.0.113.10
+<br>
+<span class="comment"># Allow from IP to specific port</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow from 203.0.113.10 to any port 22
+<br>
+<span class="comment"># Allow from subnet</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow from 192.168.1.0/24 to any port 3306
+<br>
+<span class="comment"># Delete a rule (by number)</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> status numbered
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> delete 3
+<br>
+<span class="comment"># Delete by rule specification</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> delete allow 8080
+          </div>
+        </div>
+
+        <!-- INTERACTIVE UFW NUMBERED RULES STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🔒 Interactive UFW Numbered Rule Studio</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE SIMULATION</span>
+            </div>
+            <span class="chip">ufw status numbered</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Practice adding, inspecting, and deleting firewall rules by index number. In Ubuntu, deleting rules by number (<code>sudo ufw delete &lt;num&gt;</code>) is standard operational practice.</p>
+
+            <div style="overflow-x:auto;margin-bottom:1.25rem;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Rule #</th>
+                    <th>To (Port/Service)</th>
+                    <th>Action</th>
+                    <th>From (Source)</th>
+                    <th>Comment</th>
+                    <th>Operations</th>
+                  </tr>
+                </thead>
+                <tbody id="ufw-interactive-table-body">
+                  <!-- Dynamically maintained by UfwStudio in app.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="background:rgba(2,6,16,0.6);padding:1rem;border-radius:var(--radius-sm);border:1px solid var(--border);">
+              <div style="font-size:0.85rem;font-weight:700;color:var(--cyan);margin-bottom:0.75rem;">➕ Add Custom UFW Rule</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;">
+                <div>
+                  <label class="studio-label" for="ufw-add-port">Port / Protocol</label>
+                  <input type="text" id="ufw-add-port" class="studio-input" value="8080/tcp" placeholder="e.g. 8080/tcp, 5432" />
+                </div>
+                <div>
+                  <label class="studio-label" for="ufw-add-action">Action</label>
+                  <select id="ufw-add-action" class="studio-select">
+                    <option value="ALLOW IN">ALLOW IN</option>
+                    <option value="DENY IN">DENY IN</option>
+                    <option value="REJECT IN">REJECT IN</option>
+                    <option value="LIMIT IN">LIMIT IN (Anti-Brute)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="studio-label" for="ufw-add-from">From Address / Subnet</label>
+                  <input type="text" id="ufw-add-from" class="studio-input" value="Anywhere" placeholder="Anywhere or 192.168.1.0/24" />
+                </div>
+                <div style="display:flex;align-items:flex-end;gap:0.5rem;">
+                  <button class="btn btn-primary" id="ufw-add-rule-btn" style="padding:0.6rem 1rem;flex:1;">Apply Rule</button>
+                  <button class="btn btn-secondary" id="ufw-reset-rules-btn" style="padding:0.6rem 0.8rem;" title="Reset to initial set">🔄</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP PROFILES -->
+      <section class="content-section" data-section="app-profiles" id="app-profiles">
+        <h2 class="sect-title"><span class="sect-icon">📦</span> Application Profiles</h2>
+        <p class="body-text">UFW includes application profiles stored in <code>/etc/ufw/applications.d/</code>. Packages like OpenSSH and Apache install their own profiles.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — application profiles</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># List available application profiles</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> app list
+<span class="output">Available applications:</span>
+<span class="output">  Apache</span>
+<span class="output">  Apache Full</span>
+<span class="output">  Apache Secure</span>
+<span class="output">  OpenSSH</span>
+<span class="output">  Nginx Full</span>
+<br>
+<span class="comment"># Show profile details</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> app info 'Apache Full'
+<span class="output">Profile: Apache Full</span>
+<span class="output">Title: Web Server (HTTP,HTTPS)</span>
+<span class="output">Description: Apache web server</span>
+<span class="output">Ports: 80,443/tcp</span>
+<br>
+<span class="comment"># Allow an application profile</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow 'Nginx Full'
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow 'OpenSSH'
+<br>
+<span class="comment"># Delete application profile rule</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> delete allow 'Apache'
+          </div>
+        </div>
+      </section>
+
+      <!-- ADVANCED -->
+      <section class="content-section" data-section="advanced" id="advanced">
+        <h2 class="sect-title"><span class="sect-icon">⚡</span> Advanced Rules</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — advanced UFW</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Allow with protocol specification</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow proto tcp from 192.168.1.0/24 to any port 22
+<br>
+<span class="comment"># Limit (rate-limit for brute-force protection)</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> limit ssh/tcp
+<span class="output">Rules updated</span>
+<span class="comment"># Limits to 6 connections per 30 seconds from same IP</span>
+<br>
+<span class="comment"># Insert rule at specific position</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> insert 1 allow from 10.0.0.0/8
+<br>
+<span class="comment"># Deny outgoing to specific IP</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> deny out to 198.51.100.0/24
+<br>
+<span class="comment"># Allow port range</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> allow 6000:6100/tcp
+          </div>
+        </div>
+      </section>
+
+      <!-- LOGGING -->
+      <section class="content-section" data-section="logging" id="logging">
+        <h2 class="sect-title"><span class="sect-icon">📋</span> Logging</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — UFW logging</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Enable logging</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> logging on
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> logging low    <span class="comment"># low | medium | high | full</span>
+<br>
+<span class="comment"># View UFW logs</span>
+<span class="prompt">$ </span><span class="cmd">sudo tail</span> <span class="flag">-f</span> /var/log/ufw.log
+<span class="output">[UFW BLOCK] IN=ens3 OUT= SRC=203.0.113.5 DST=192.168.1.100 PROTO=TCP DPT=22</span>
+<br>
+<span class="comment"># UFW logs are also in syslog</span>
+<span class="prompt">$ </span><span class="cmd">sudo grep</span> UFW /var/log/syslog | tail -20
+<br>
+<span class="comment"># Check full status</span>
+<span class="prompt">$ </span><span class="cmd">sudo ufw</span> status verbose
+          </div>
+        </div>
+      </section>
+
+      <!-- LAB -->
+      <section class="content-section" data-section="lab" id="lab">
+        <h2 class="sect-title"><span class="sect-icon">🧪</span> Lab Exercise</h2>
+        <div class="lab-box">
+          <div class="lab-header">
+            <div class="lab-icon">🧪</div>
+            <div>
+              <div class="lab-title">Lab 04 — Secure an Ubuntu Web Server with UFW</div>
+              <div class="lab-subtitle">Estimated time: 15 minutes · Ubuntu/Debian</div>
+            </div>
+          </div>
+          <div class="lab-steps">
+            <div class="lab-step"><div class="lab-step-num">1</div><div class="lab-step-body"><div class="lab-step-title">Allow SSH before enabling</div><div class="lab-step-text">Always run <code>sudo ufw allow OpenSSH</code> FIRST to avoid locking yourself out.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">2</div><div class="lab-step-body"><div class="lab-step-title">Set default deny policies</div><div class="lab-step-text">Set default incoming to deny and outgoing to allow.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">3</div><div class="lab-step-body"><div class="lab-step-title">Enable the firewall</div><div class="lab-step-text">Run <code>sudo ufw enable</code> and confirm the prompt.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">4</div><div class="lab-step-body"><div class="lab-step-title">Allow web traffic</div><div class="lab-step-text">Allow the 'Nginx Full' or 'Apache Full' application profile, or manually allow 80 and 443.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">5</div><div class="lab-step-body"><div class="lab-step-title">Rate-limit SSH</div><div class="lab-step-text">Run <code>sudo ufw limit ssh</code> to enable brute-force protection for SSH.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">6</div><div class="lab-step-body"><div class="lab-step-title">Enable logging and verify</div><div class="lab-step-text">Enable medium logging with <code>sudo ufw logging medium</code> and check <code>sudo ufw status verbose</code>.</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUIZ -->
+      <section class="content-section" data-section="quiz" id="quiz">
+        <h2 class="sect-title"><span class="sect-icon">❓</span> Knowledge Check</h2>
+        <div class="completion-banner">
+          <div class="completion-banner-icon">🎉</div>
+          <div class="completion-banner-text"><strong>Module Complete!</strong> You scored 80%+ and earned +150 XP!</div>
+        </div>
+        <div class="quiz-box">
+          <div class="quiz-header">
+            <div class="quiz-icon">🧠</div>
+            <div><div class="quiz-title">UFW Quiz</div><div class="quiz-subtitle">5 questions · +20 XP per correct answer</div></div>
+          </div>
+          <div class="quiz-progress-wrap">
+            <span>Question <span class="q-current">1</span> of <span class="q-total">5</span></span>
+          </div>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:0%"></div></div>
+          <div class="quiz-question-wrap">
+            <p class="question-text"></p>
+            <ul class="options-list"></ul>
+            <div class="quiz-explanation"></div>
+            <div class="quiz-actions"><button class="btn btn-ghost" id="quiz-next" disabled>Next →</button></div>
+          </div>
+          <div class="quiz-result">
+            <div class="quiz-score-circle" style="--pct:0%"><div class="quiz-score-text">0%</div></div>
+            <div class="quiz-result-title"></div><div class="quiz-result-sub"></div>
+            <button class="btn btn-secondary" id="quiz-restart">🔄 Try Again</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="lesson-nav">
+        <a href="firewalld.html" class="lesson-nav-btn"><span class="nav-icon">←</span><div><span class="nav-dir">Previous</span><span class="nav-label">firewalld</span></div></a>
+        <a href="monitoring.html" class="lesson-nav-btn next"><span class="nav-icon">→</span><div><span class="nav-dir">Next Module</span><span class="nav-label">Network Monitoring</span></div></a>
+      </div>
+    </main>
+  </div>
+
+  <footer><div class="footer-logo">🛡️ Linux<span>Firewall</span></div><p class="footer-text">Linux System Administration · PBL Project · 2026</p></footer>
+</div>
+<script>
+const quizModuleId = 'ufw';
+const quizData = [
+  {
+    question: "What is the FIRST thing you should do before enabling UFW on a remote server?",
+    options: [
+      "Set default policy to deny outgoing",
+      "Install fail2ban",
+      "Allow SSH so you don't get locked out",
+      "Reboot the server"
+    ],
+    correct: 2,
+    explanation: "Always allow SSH (port 22 or 'OpenSSH' profile) before enabling UFW, especially on remote servers. Enabling UFW without allowing SSH will lock you out of the server."
+  },
+  {
+    question: "Which command enables brute-force protection for SSH in UFW?",
+    options: ["ufw allow ssh", "ufw block ssh", "ufw limit ssh", "ufw deny ssh/flood"],
+    correct: 2,
+    explanation: "'ufw limit ssh' enables rate-limiting for SSH: it blocks connections from IPs that attempt more than 6 connections within 30 seconds — effective against brute-force attacks."
+  },
+  {
+    question: "Where are UFW application profiles stored?",
+    options: ["/etc/ufw/rules.d/", "/etc/ufw/applications.d/", "/var/lib/ufw/apps/", "/usr/share/ufw/"],
+    correct: 1,
+    explanation: "UFW application profiles are stored in /etc/ufw/applications.d/. Each file defines one or more profiles with associated ports and descriptions."
+  },
+  {
+    question: "What does 'ufw default deny incoming' do?",
+    options: [
+      "Blocks all outgoing traffic",
+      "Sets the default policy to drop all incoming connections not matched by a rule",
+      "Removes all existing deny rules",
+      "Disables UFW"
+    ],
+    correct: 1,
+    explanation: "This sets the default policy for incoming traffic to DENY. Any incoming connection not explicitly allowed by a rule will be rejected. This is a security best practice."
+  },
+  {
+    question: "Which command shows numbered UFW rules so you can delete by position?",
+    options: ["ufw list --numbered", "ufw status numbered", "ufw show rules", "ufw rules --number"],
+    correct: 1,
+    explanation: "'ufw status numbered' displays all active rules with their numbers, allowing you to delete a specific rule using 'ufw delete <number>'."
+  }
+];
+</script>
+<script src="../scripts/app.js"></script>
+</body>
+</html>
