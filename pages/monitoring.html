@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Network Monitoring & Troubleshooting — LinuxFirewall</title>
+  <meta name="description" content="Learn Linux network monitoring with ss, tcpdump, nmap, netstat, ping, traceroute, and Wireshark." />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="wrapper">
+
+  <nav>
+    <a href="../index.html" class="nav-logo"><div class="nav-logo-icon">🛡️</div>Linux<span>Firewall</span></a>
+    <ul class="nav-links">
+      <li><a href="../index.html">🏠 Home</a></li>
+      <li><a href="network-config.html">🌐 Network</a></li>
+      <li><a href="iptables.html">🔥 iptables</a></li>
+      <li><a href="firewalld.html">🛡️ firewalld</a></li>
+      <li><a href="ufw.html">🔒 UFW</a></li>
+      <li><a href="monitoring.html" class="active">📡 Monitor</a></li>
+      <li><a href="vpn.html">🔑 VPN</a></li>
+      <li><a href="hardening.html">⚔️ Harden</a></li>
+    </ul>
+    <div class="nav-progress"><span class="xp-badge">⚡ 0 XP</span></div>
+    <div class="hamburger"><span></span><span></span><span></span></div>
+  </nav>
+
+  <div class="lesson-layout">
+    <aside class="lesson-sidebar">
+      <div class="sidebar-title">Module 05</div>
+      <ul class="sidebar-nav">
+        <li><a href="#overview" class="active">📌 Overview</a></li>
+        <li><a href="#ss-netstat">🔌 ss & netstat</a></li>
+        <li><a href="#ping-trace">📡 ping & traceroute</a></li>
+        <li><a href="#tcpdump">🎣 tcpdump</a></li>
+        <li><a href="#nmap">🗺️ nmap</a></li>
+        <li><a href="#bandwidth">📊 Bandwidth Tools</a></li>
+        <li><a href="#lab">🧪 Lab Exercise</a></li>
+        <li><a href="#quiz">❓ Quiz</a></li>
+      </ul>
+    </aside>
+
+    <main class="lesson-main">
+      <div class="lesson-breadcrumb">
+        <a href="../index.html">Home</a><span class="sep">›</span><span>Module 05 — Network Monitoring</span>
+      </div>
+
+      <header class="lesson-header">
+        <div class="lesson-module-badge">📡 Module 05 of 07</div>
+        <h1 class="lesson-title">Network <span>Monitoring & Troubleshooting</span></h1>
+        <p class="lesson-intro">Diagnose network problems, analyze traffic, scan for open ports, and monitor bandwidth using powerful Linux command-line tools. These skills are essential for any sysadmin.</p>
+        <div class="lesson-meta-row">
+          <span class="meta-item">🕐 <strong>~55 min</strong></span>
+          <span class="meta-item">🎯 <strong>Intermediate</strong></span>
+          <span class="meta-item">📝 <strong>5 Quiz Questions</strong></span>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section class="content-section" data-section="overview" id="overview">
+        <h2 class="sect-title"><span class="sect-icon">📌</span> Overview</h2>
+        <p class="body-text">Linux provides a rich set of network diagnostic tools. Knowing which tool to reach for in different scenarios is a key sysadmin skill.</p>
+        <table class="data-table">
+          <thead><tr><th>Tool</th><th>Purpose</th><th>Layer</th></tr></thead>
+          <tbody>
+            <tr><td>ping</td><td>Test basic connectivity and latency</td><td>ICMP / L3</td></tr>
+            <tr><td>traceroute / tracepath</td><td>Trace packet route to destination</td><td>ICMP/UDP / L3</td></tr>
+            <tr><td>ss / netstat</td><td>View socket connections and listening ports</td><td>Transport / L4</td></tr>
+            <tr><td>tcpdump</td><td>Capture and analyze raw packets</td><td>All layers</td></tr>
+            <tr><td>nmap</td><td>Port scanning and service discovery</td><td>L3/L4</td></tr>
+            <tr><td>iftop / nethogs</td><td>Real-time bandwidth monitoring per interface/process</td><td>L2/L3</td></tr>
+            <tr><td>mtr</td><td>Combined traceroute + ping with statistics</td><td>ICMP / L3</td></tr>
+            <tr><td>dig / nslookup</td><td>DNS query tools</td><td>DNS / L7</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- SS & NETSTAT -->
+      <section class="content-section" data-section="ss-netstat" id="ss-netstat">
+        <h2 class="sect-title"><span class="sect-icon">🔌</span> ss & netstat</h2>
+        <p class="body-text"><code>ss</code> (socket statistics) is the modern replacement for <code>netstat</code>, providing the same info faster.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — ss command</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># List all listening TCP sockets</span>
+<span class="prompt">$ </span><span class="cmd">ss</span> <span class="flag">-tlnp</span>
+<span class="output">State   Recv-Q  Send-Q  Local Address:Port   Peer Address:Port  Process</span>
+<span class="output">LISTEN  0       128     0.0.0.0:22            0.0.0.0:*          users:(("sshd",pid=1023))</span>
+<span class="output">LISTEN  0       511     0.0.0.0:80            0.0.0.0:*          users:(("nginx",pid=2345))</span>
+<br>
+<span class="comment"># Show all established connections</span>
+<span class="prompt">$ </span><span class="cmd">ss</span> <span class="flag">-tnp</span> state established
+<br>
+<span class="comment"># Show UDP sockets</span>
+<span class="prompt">$ </span><span class="cmd">ss</span> <span class="flag">-ulnp</span>
+<br>
+<span class="comment"># Filter by port</span>
+<span class="prompt">$ </span><span class="cmd">ss</span> <span class="flag">-tnp</span> '( dport = :443 or sport = :443 )'
+<br>
+<span class="comment"># Legacy netstat equivalent</span>
+<span class="prompt">$ </span><span class="cmd">netstat</span> <span class="flag">-tlnp</span>
+          </div>
+        </div>
+
+        <!-- SS SOCKET FILTER STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🔌 Interactive Socket Statistics (ss) Inspector</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE KERNEL SOCKETS</span>
+            </div>
+            <span class="chip">ss -tulpn Filter</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Filter active Linux sockets by connection state to inspect network services, bound IP addresses, and daemon PID process mappings.</p>
+
+            <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;">
+              <label class="studio-label" for="ss-state-filter" style="margin-bottom:0;">Filter Socket State:</label>
+              <select id="ss-state-filter" class="studio-select" style="max-width:240px;">
+                <option value="ALL">ALL (All active sockets)</option>
+                <option value="LISTEN" selected>LISTEN (Listening daemons)</option>
+                <option value="ESTAB">ESTABLISHED (Active sessions)</option>
+                <option value="UNCONN">UNCONN (UDP endpoints)</option>
+              </select>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Netid</th>
+                    <th>State</th>
+                    <th>Local Address:Port</th>
+                    <th>Peer Address:Port</th>
+                    <th>Process / Daemon</th>
+                  </tr>
+                </thead>
+                <tbody id="ss-filter-tbody">
+                  <!-- Rendered dynamically by MonitoringStudio -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PING & TRACEROUTE -->
+      <section class="content-section" data-section="ping-trace" id="ping-trace">
+        <h2 class="sect-title"><span class="sect-icon">📡</span> ping & traceroute</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — connectivity tools</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Basic ping (4 packets)</span>
+<span class="prompt">$ </span><span class="cmd">ping</span> <span class="flag">-c 4</span> 8.8.8.8
+<span class="output">PING 8.8.8.8 56(84) bytes of data.</span>
+<span class="output">64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=12.3 ms</span>
+<span class="output">--- 8.8.8.8 ping statistics ---</span>
+<span class="output">4 packets transmitted, 4 received, 0% packet loss</span>
+<br>
+<span class="comment"># Ping with flood (requires root)</span>
+<span class="prompt">$ </span><span class="cmd">sudo ping</span> <span class="flag">-f -c 100</span> 192.168.1.1
+<br>
+<span class="comment"># Traceroute to destination</span>
+<span class="prompt">$ </span><span class="cmd">traceroute</span> google.com
+<span class="output"> 1  192.168.1.1   1.234 ms   1.123 ms   0.987 ms</span>
+<span class="output"> 2  10.0.0.1      5.432 ms   4.321 ms   5.123 ms</span>
+<span class="output"> 3  * * *  (firewall blocking)</span>
+<br>
+<span class="comment"># mtr: live traceroute with statistics</span>
+<span class="prompt">$ </span><span class="cmd">mtr</span> <span class="flag">--report</span> google.com
+<br>
+<span class="comment"># tracepath (doesn't need root)</span>
+<span class="prompt">$ </span><span class="cmd">tracepath</span> 8.8.8.8
+          </div>
+        </div>
+      </section>
+
+      <!-- TCPDUMP -->
+      <section class="content-section" data-section="tcpdump" id="tcpdump">
+        <h2 class="sect-title"><span class="sect-icon">🎣</span> tcpdump — Packet Capture</h2>
+        <p class="body-text">tcpdump captures live network traffic and writes it to the terminal or a .pcap file for later analysis with Wireshark.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — tcpdump</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Capture on interface ens3</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-i</span> ens3
+<br>
+<span class="comment"># Capture only HTTP traffic</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-i</span> ens3 port 80
+<br>
+<span class="comment"># Capture TCP SYN packets (new connections)</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-i</span> ens3 'tcp[tcpflags] & tcp-syn != 0'
+<br>
+<span class="comment"># Capture traffic from specific host</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-i</span> ens3 host 203.0.113.5
+<br>
+<span class="comment"># Save to pcap file (for Wireshark)</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-i</span> ens3 <span class="flag">-w</span> /tmp/capture.pcap
+<br>
+<span class="comment"># Read pcap file</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-r</span> /tmp/capture.pcap
+<br>
+<span class="comment"># Verbose with no DNS resolution</span>
+<span class="prompt">$ </span><span class="cmd">sudo tcpdump</span> <span class="flag">-vvv -n -i</span> ens3 port 443
+          </div>
+        </div>
+
+        <!-- TCPDUMP BPF STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🎣 Interactive tcpdump BPF Filter & Live Packet Stream</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE PACKET STREAM</span>
+            </div>
+            <span class="chip">Berkeley Packet Filter (BPF)</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Assemble custom kernel packet filters using BPF primitives and stream simulated raw packet decodes.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+              <div>
+                <label class="studio-label" for="bpf-iface">Interface</label>
+                <select id="bpf-iface" class="studio-select">
+                  <option value="ens3">ens3 (Ethernet)</option>
+                  <option value="lo">lo (Loopback)</option>
+                  <option value="wg0">wg0 (VPN Tunnel)</option>
+                  <option value="any">any (All Interfaces)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="bpf-proto">Protocol</label>
+                <select id="bpf-proto" class="studio-select">
+                  <option value="tcp">tcp</option>
+                  <option value="udp">udp</option>
+                  <option value="icmp">icmp</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="bpf-port">Port Number</label>
+                <input type="text" id="bpf-port" class="studio-input" value="80" placeholder="e.g. 80, 443, 22" />
+              </div>
+              <div>
+                <label class="studio-label" for="bpf-flags">TCP Flags</label>
+                <select id="bpf-flags" class="studio-select">
+                  <option value="any">Any Flag State</option>
+                  <option value="syn">SYN only (New Connections)</option>
+                  <option value="syn-ack">SYN-ACK (Handshake Responses)</option>
+                  <option value="rst">RST only (Connection Aborts)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">BPF Capture Command:</div>
+            <div class="studio-code-box" id="bpf-out-cmd" style="margin-bottom:1rem;"></div>
+
+            <button class="btn btn-primary" id="bpf-stream-btn" style="margin-bottom:0.75rem;padding:0.55rem 1.25rem;">▶️ Start Simulated Capture Stream</button>
+            <div class="studio-code-box" id="bpf-stream-output" style="height:150px;overflow-y:auto;color:var(--cyan);font-size:0.78rem;">Click "Start Simulated Capture Stream" to listen for live incoming traffic matches.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NMAP -->
+      <section class="content-section" data-section="nmap" id="nmap">
+        <h2 class="sect-title"><span class="sect-icon">🗺️</span> nmap — Network Scanner</h2>
+        <p class="body-text">nmap (Network Mapper) is the industry-standard port scanner. Use it to discover hosts, open ports, and running services.</p>
+
+        <div class="info-box warn">
+          <div class="info-box-icon">⚠️</div>
+          <div class="info-box-body">
+            <div class="info-box-title">Legal Warning</div>
+            <div class="info-box-text">Only scan networks and hosts you own or have explicit written permission to scan. Unauthorized port scanning is illegal in many jurisdictions.</div>
+          </div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — nmap scanning</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Basic port scan of a host</span>
+<span class="prompt">$ </span><span class="cmd">nmap</span> 192.168.1.1
+<br>
+<span class="comment"># Scan specific ports</span>
+<span class="prompt">$ </span><span class="cmd">nmap</span> <span class="flag">-p 22,80,443,8080</span> 192.168.1.0/24
+<br>
+<span class="comment"># Service version detection</span>
+<span class="prompt">$ </span><span class="cmd">nmap</span> <span class="flag">-sV</span> 192.168.1.100
+<span class="output">22/tcp  open  ssh      OpenSSH 8.9p1</span>
+<span class="output">80/tcp  open  http     nginx 1.22.0</span>
+<span class="output">443/tcp open  https    nginx 1.22.0</span>
+<br>
+<span class="comment"># OS detection (requires root)</span>
+<span class="prompt">$ </span><span class="cmd">sudo nmap</span> <span class="flag">-O</span> 192.168.1.100
+<br>
+<span class="comment"># Aggressive scan (OS + version + scripts + traceroute)</span>
+<span class="prompt">$ </span><span class="cmd">sudo nmap</span> <span class="flag">-A</span> 192.168.1.100
+<br>
+<span class="comment"># Fast scan of top 100 ports</span>
+<span class="prompt">$ </span><span class="cmd">nmap</span> <span class="flag">-F</span> 192.168.1.0/24
+<br>
+<span class="comment"># Scan all 65535 ports</span>
+<span class="prompt">$ </span><span class="cmd">nmap</span> <span class="flag">-p-</span> 192.168.1.100
+          </div>
+        </div>
+      </section>
+
+      <!-- BANDWIDTH -->
+      <section class="content-section" data-section="bandwidth" id="bandwidth">
+        <h2 class="sect-title"><span class="sect-icon">📊</span> Bandwidth Monitoring & Telemetry</h2>
+
+        <div class="cmd-grid">
+          <div class="cmd-card">
+            <div class="cmd-card-title">iftop</div>
+            <div class="cmd-card-desc">Real-time bandwidth per connection on an interface</div>
+            <div class="cmd-card-syntax">sudo iftop -i ens3</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">nethogs</div>
+            <div class="cmd-card-desc">Show bandwidth usage per process</div>
+            <div class="cmd-card-syntax">sudo nethogs ens3</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">vnstat</div>
+            <div class="cmd-card-desc">Historical bandwidth statistics</div>
+            <div class="cmd-card-syntax">vnstat -i ens3</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">iperf3</div>
+            <div class="cmd-card-desc">Measure network throughput between hosts</div>
+            <div class="cmd-card-syntax">iperf3 -s / iperf3 -c server_ip</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">nload</div>
+            <div class="cmd-card-desc">Visual incoming/outgoing bandwidth graph</div>
+            <div class="cmd-card-syntax">nload ens3</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">bmon</div>
+            <div class="cmd-card-desc">Bandwidth monitor for all interfaces</div>
+            <div class="cmd-card-syntax">bmon</div>
+          </div>
+        </div>
+
+        <!-- REALTIME BANDWIDTH MONITOR WIDGET -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>📊 Real-Time Network Throughput & Interface Telemetry</span>
+              <span class="live-badge"><span class="live-dot"></span> LIVE 1Hz STREAM</span>
+            </div>
+            <span class="chip">ens3 · RX / TX</span>
+          </div>
+          <div class="widget-studio-body">
+            <div class="telemetry-grid" style="margin-bottom:1rem;">
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Inbound Throughput (RX)</div>
+                <div class="telemetry-card-val" id="telemetry-rx-speed" style="color:var(--cyan)">384 KB/s</div>
+              </div>
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Outbound Throughput (TX)</div>
+                <div class="telemetry-card-val" id="telemetry-tx-speed" style="color:var(--purple)">188 KB/s</div>
+              </div>
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Total Packets Processed</div>
+                <div class="telemetry-card-val" id="telemetry-total-pkts" style="color:var(--green)">1,842,000</div>
+              </div>
+              <div class="telemetry-card">
+                <div class="telemetry-card-title">Firewall Dropped Packets</div>
+                <div class="telemetry-card-val" id="telemetry-dropped-pkts" style="color:var(--red)">28,140</div>
+              </div>
+            </div>
+
+            <div style="background:rgba(2,6,16,0.9);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;">
+              <div style="font-size:0.75rem;color:var(--text-muted);display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+                <span><span style="color:var(--cyan);font-weight:bold;">━</span> RX Download</span>
+                <span><span style="color:var(--purple);font-weight:bold;">━</span> TX Upload</span>
+                <span>Interval: 1.0s</span>
+              </div>
+              <canvas id="bandwidth-canvas" style="width:100%;height:160px;display:block;"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LAB -->
+      <section class="content-section" data-section="lab" id="lab">
+        <h2 class="sect-title"><span class="sect-icon">🧪</span> Lab Exercise</h2>
+        <div class="lab-box">
+          <div class="lab-header">
+            <div class="lab-icon">🧪</div>
+            <div>
+              <div class="lab-title">Lab 05 — Network Reconnaissance & Troubleshooting</div>
+              <div class="lab-subtitle">Estimated time: 20 minutes · On your own network/VM</div>
+            </div>
+          </div>
+          <div class="lab-steps">
+            <div class="lab-step"><div class="lab-step-num">1</div><div class="lab-step-body"><div class="lab-step-title">Check listening services</div><div class="lab-step-text">Run <code>ss -tlnp</code> to see what ports are open on your system. Identify each service.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">2</div><div class="lab-step-body"><div class="lab-step-title">Test connectivity</div><div class="lab-step-text">Ping your gateway, then 8.8.8.8, then google.com to diagnose where any connectivity issue exists.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">3</div><div class="lab-step-body"><div class="lab-step-title">Trace network path</div><div class="lab-step-text">Run <code>traceroute 8.8.8.8</code> and identify each hop. Note any timeout hops (*).</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">4</div><div class="lab-step-body"><div class="lab-step-title">Capture SSH traffic</div><div class="lab-step-text">In one terminal, run <code>sudo tcpdump -i any port 22 -n</code>. In another, SSH to localhost. Observe the packets captured.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">5</div><div class="lab-step-body"><div class="lab-step-title">Scan your own machine</div><div class="lab-step-text">Run <code>nmap -sV localhost</code> to see what services nmap detects on your machine. Compare with <code>ss -tlnp</code> output.</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUIZ -->
+      <section class="content-section" data-section="quiz" id="quiz">
+        <h2 class="sect-title"><span class="sect-icon">❓</span> Knowledge Check</h2>
+        <div class="completion-banner">
+          <div class="completion-banner-icon">🎉</div>
+          <div class="completion-banner-text"><strong>Module Complete!</strong> You scored 80%+ and earned +150 XP!</div>
+        </div>
+        <div class="quiz-box">
+          <div class="quiz-header">
+            <div class="quiz-icon">🧠</div>
+            <div><div class="quiz-title">Network Monitoring Quiz</div><div class="quiz-subtitle">5 questions · +20 XP per correct answer</div></div>
+          </div>
+          <div class="quiz-progress-wrap">
+            <span>Question <span class="q-current">1</span> of <span class="q-total">5</span></span>
+          </div>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:0%"></div></div>
+          <div class="quiz-question-wrap">
+            <p class="question-text"></p>
+            <ul class="options-list"></ul>
+            <div class="quiz-explanation"></div>
+            <div class="quiz-actions"><button class="btn btn-ghost" id="quiz-next" disabled>Next →</button></div>
+          </div>
+          <div class="quiz-result">
+            <div class="quiz-score-circle" style="--pct:0%"><div class="quiz-score-text">0%</div></div>
+            <div class="quiz-result-title"></div><div class="quiz-result-sub"></div>
+            <button class="btn btn-secondary" id="quiz-restart">🔄 Try Again</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="lesson-nav">
+        <a href="ufw.html" class="lesson-nav-btn"><span class="nav-icon">←</span><div><span class="nav-dir">Previous</span><span class="nav-label">UFW</span></div></a>
+        <a href="vpn.html" class="lesson-nav-btn next"><span class="nav-icon">→</span><div><span class="nav-dir">Next Module</span><span class="nav-label">VPN & Tunneling</span></div></a>
+      </div>
+    </main>
+  </div>
+
+  <footer><div class="footer-logo">🛡️ Linux<span>Firewall</span></div><p class="footer-text">Linux System Administration · PBL Project · 2026</p></footer>
+</div>
+<script>
+const quizModuleId = 'monitoring';
+const quizData = [
+  {
+    question: "Which command is the modern replacement for 'netstat -tlnp' to view listening TCP ports?",
+    options: ["ps aux", "ss -tlnp", "nmap -sT", "ip link show"],
+    correct: 1,
+    explanation: "'ss -tlnp' shows TCP listening sockets with process names. It's faster and more feature-rich than the legacy 'netstat' command from the deprecated net-tools package."
+  },
+  {
+    question: "What does the '-w' flag do in 'tcpdump -i ens3 -w capture.pcap'?",
+    options: [
+      "Filters by web (HTTP) traffic only",
+      "Writes the raw capture to a file for analysis",
+      "Sets the window size",
+      "Enables verbose output"
+    ],
+    correct: 1,
+    explanation: "The '-w' flag writes the captured packets to a pcap file instead of displaying them. This file can then be analyzed with Wireshark or read back with 'tcpdump -r'."
+  },
+  {
+    question: "What does '* * *' in traceroute output indicate?",
+    options: [
+      "A very fast hop",
+      "The destination was reached",
+      "The router at that hop is blocking ICMP probes",
+      "A routing loop was detected"
+    ],
+    correct: 2,
+    explanation: "Three asterisks in traceroute output mean the probe packets timed out — typically because the router at that hop has a firewall rule blocking ICMP TTL-exceeded messages."
+  },
+  {
+    question: "Which nmap flag enables service version detection?",
+    options: ["-O", "-sV", "-A", "-F"],
+    correct: 1,
+    explanation: "'-sV' (service version) probes open ports to determine what software and version is running. '-O' is OS detection, '-A' enables aggressive mode (all detections), and '-F' is fast scan."
+  },
+  {
+    question: "Which tool shows real-time bandwidth usage broken down per process?",
+    options: ["iftop", "tcpdump", "nethogs", "nmap"],
+    correct: 2,
+    explanation: "nethogs groups bandwidth by process, showing you which application is consuming network bandwidth. iftop shows per-connection bandwidth on an interface, but not per-process."
+  }
+];
+</script>
+<script src="../scripts/app.js"></script>
+</body>
+</html>

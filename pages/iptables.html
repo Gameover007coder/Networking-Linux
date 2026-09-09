@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iptables & nftables — LinuxFirewall</title>
+  <meta name="description" content="Learn iptables and nftables: packet filtering, chains, rules, NAT, and firewall policies on Linux." />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="wrapper">
+
+  <nav>
+    <a href="../index.html" class="nav-logo"><div class="nav-logo-icon">🛡️</div>Linux<span>Firewall</span></a>
+    <ul class="nav-links">
+      <li><a href="../index.html">🏠 Home</a></li>
+      <li><a href="network-config.html">🌐 Network</a></li>
+      <li><a href="iptables.html" class="active">🔥 iptables</a></li>
+      <li><a href="firewalld.html">🛡️ firewalld</a></li>
+      <li><a href="ufw.html">🔒 UFW</a></li>
+      <li><a href="monitoring.html">📡 Monitor</a></li>
+      <li><a href="vpn.html">🔑 VPN</a></li>
+      <li><a href="hardening.html">⚔️ Harden</a></li>
+    </ul>
+    <div class="nav-progress"><span class="xp-badge">⚡ 0 XP</span></div>
+    <div class="hamburger"><span></span><span></span><span></span></div>
+  </nav>
+
+  <div class="lesson-layout">
+    <aside class="lesson-sidebar">
+      <div class="sidebar-title">Module 02</div>
+      <ul class="sidebar-nav">
+        <li><a href="#overview" class="active">📌 Overview</a></li>
+        <li><a href="#tables-chains">📋 Tables & Chains</a></li>
+        <li><a href="#rules">📝 Writing Rules</a></li>
+        <li><a href="#nat">🔄 NAT & Masquerade</a></li>
+        <li><a href="#nftables">⚡ nftables</a></li>
+        <li><a href="#save-restore">💾 Save & Restore</a></li>
+        <li><a href="#lab">🧪 Lab Exercise</a></li>
+        <li><a href="#quiz">❓ Quiz</a></li>
+      </ul>
+    </aside>
+
+    <main class="lesson-main">
+      <div class="lesson-breadcrumb">
+        <a href="../index.html">Home</a><span class="sep">›</span>
+        <span>Module 02 — iptables & nftables</span>
+      </div>
+
+      <header class="lesson-header">
+        <div class="lesson-module-badge">🔥 Module 02 of 07</div>
+        <h1 class="lesson-title">iptables & <span>nftables</span></h1>
+        <p class="lesson-intro">iptables is the classic Linux firewall framework that uses netfilter hooks in the kernel. Learn to filter packets, perform NAT, and build complete firewall rulesets. We also cover nftables — the modern replacement.</p>
+        <div class="lesson-meta-row">
+          <span class="meta-item">🕐 <strong>~60 min</strong></span>
+          <span class="meta-item">🎯 <strong>Intermediate</strong></span>
+          <span class="meta-item">📝 <strong>5 Quiz Questions</strong></span>
+          <span class="meta-item">🧪 <strong>1 Lab Exercise</strong></span>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section class="content-section" data-section="overview" id="overview">
+        <h2 class="sect-title"><span class="sect-icon">📌</span> Overview</h2>
+        <p class="body-text">iptables works with the Linux kernel's <strong>netfilter</strong> framework. Packets traverse a series of <strong>tables</strong>, each containing <strong>chains</strong> of <strong>rules</strong>. Each rule matches packet attributes and specifies a <strong>target</strong> (action).</p>
+
+        <div class="diagram-wrap">
+          <svg width="700" height="140" viewBox="0 0 700 140" style="max-width:100%;font-family:var(--font-mono);font-size:12px">
+            <defs><marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#00e5ff"/></marker></defs>
+            <!-- Nodes -->
+            <rect x="10" y="55" width="100" height="36" rx="6" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+            <text x="60" y="78" text-anchor="middle" fill="#00e5ff">PREROUTING</text>
+
+            <rect x="145" y="20" width="90" height="36" rx="6" fill="none" stroke="#3d8bff" stroke-width="1.5"/>
+            <text x="190" y="43" text-anchor="middle" fill="#3d8bff">ROUTING</text>
+
+            <rect x="270" y="55" width="90" height="36" rx="6" fill="none" stroke="#9b59ff" stroke-width="1.5"/>
+            <text x="315" y="78" text-anchor="middle" fill="#9b59ff">FORWARD</text>
+
+            <rect x="145" y="85" width="90" height="36" rx="6" fill="none" stroke="#00ffa3" stroke-width="1.5"/>
+            <text x="190" y="108" text-anchor="middle" fill="#00ffa3">INPUT</text>
+
+            <rect x="395" y="55" width="100" height="36" rx="6" fill="none" stroke="#ff9f43" stroke-width="1.5"/>
+            <text x="445" y="78" text-anchor="middle" fill="#ff9f43">POSTROUTING</text>
+
+            <rect x="530" y="55" width="80" height="36" rx="6" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+            <text x="570" y="78" text-anchor="middle" fill="#00e5ff">OUTPUT</text>
+
+            <!-- Arrows -->
+            <line x1="110" y1="73" x2="143" y2="38" stroke="#00e5ff" stroke-width="1.2" marker-end="url(#arr)"/>
+            <line x1="110" y1="73" x2="143" y2="103" stroke="#00e5ff" stroke-width="1.2" marker-end="url(#arr)"/>
+            <line x1="235" y1="38" x2="268" y2="65" stroke="#3d8bff" stroke-width="1.2" marker-end="url(#arr)"/>
+            <line x1="360" y1="73" x2="393" y2="73" stroke="#9b59ff" stroke-width="1.2" marker-end="url(#arr)"/>
+            <line x1="495" y1="73" x2="528" y2="73" stroke="#ff9f43" stroke-width="1.2" marker-end="url(#arr)"/>
+            <!-- Labels -->
+            <text x="350" y="130" text-anchor="middle" fill="#4a5880" font-size="11">Netfilter packet flow</text>
+          </svg>
+        </div>
+
+        <!-- NETFILTER PACKET TRAVERSAL SIMULATOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>⚡ Interactive Kernel Netfilter Packet Traversal Simulator</span>
+              <span class="live-badge"><span class="live-dot"></span> KERNEL HOOKS</span>
+            </div>
+            <span class="chip">Prerouting · Input · Forward · Output · Postrouting</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem;">Select a simulated packet type to watch the exact traversal sequence through Linux netfilter hook points and inspect the firewall rule evaluation in real time.</p>
+
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;">
+              <label class="studio-label" for="nf-packet-select" style="margin-bottom:0;">Simulated Packet:</label>
+              <select id="nf-packet-select" class="studio-select" style="max-width:340px;">
+                <option value="http">🌐 Inbound HTTP (Port 80 to Web Server)</option>
+                <option value="ssh">🔑 Established SSH Session (Port 22 Conntrack)</option>
+                <option value="blocked">🚫 Insecure Telnet Probe (Port 23 from Untrusted IP)</option>
+                <option value="forward">🔄 NAT Router Egress (Client 10.0.0.2 to Internet)</option>
+              </select>
+              <button class="btn btn-primary" id="nf-send-btn" style="padding:0.6rem 1.25rem;">🚀 Transmit Test Packet</button>
+            </div>
+
+            <!-- Hook Flow Nodes -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.75rem;margin:1.5rem 0;">
+              <div class="nf-node" id="nf-ingress" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 1</div>
+                <strong style="color:var(--cyan);font-size:0.85rem;">NIC Ingress</strong>
+              </div>
+              <div class="nf-node" id="nf-preroute" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 2</div>
+                <strong style="color:var(--cyan);font-size:0.85rem;">PREROUTING</strong>
+              </div>
+              <div class="nf-node" id="nf-routing" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 3</div>
+                <strong style="color:var(--yellow);font-size:0.85rem;">Route Decision</strong>
+              </div>
+              <div class="nf-node" id="nf-input" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 4A</div>
+                <strong style="color:var(--green);font-size:0.85rem;">INPUT Chain</strong>
+              </div>
+              <div class="nf-node" id="nf-forward" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 4B</div>
+                <strong style="color:var(--purple);font-size:0.85rem;">FORWARD</strong>
+              </div>
+              <div class="nf-node" id="nf-postroute" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">STEP 5</div>
+                <strong style="color:var(--cyan);font-size:0.85rem;">POSTROUTING</strong>
+              </div>
+              <div class="nf-node" id="nf-socket" style="padding:0.75rem;text-align:center;background:rgba(2,6,16,0.8);border:1px solid var(--border);border-radius:6px;">
+                <div style="font-size:0.72rem;color:var(--text-muted);">TARGET</div>
+                <strong style="color:var(--green);font-size:0.85rem;">Local Socket</strong>
+              </div>
+            </div>
+
+            <!-- Verdict Display -->
+            <div style="padding:1rem;background:rgba(0,0,0,0.4);border-radius:6px;border-left:3px solid var(--cyan);">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+                <div style="font-weight:bold;color:var(--text-primary);">Kernel Verdict: <span id="nf-verdict-result"><span class="chip" style="color:var(--green)">ACCEPTED</span></span></div>
+                <code id="nf-rule-result" style="color:var(--cyan);font-size:0.8rem;">iptables -A INPUT -p tcp --dport 80 -j ACCEPT</code>
+              </div>
+              <div id="nf-exp-result" style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.4rem;">
+                Packet enters ens3 -> PREROUTING table -> Routing evaluates destination as 192.168.1.150 (Local Host) -> Sent to INPUT chain -> Matches rule accepting TCP dport 80 -> Delivered to local Nginx socket.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TABLES & CHAINS -->
+      <section class="content-section" data-section="tables-chains" id="tables-chains">
+        <h2 class="sect-title"><span class="sect-icon">📋</span> Tables & Chains</h2>
+        <table class="data-table">
+          <thead><tr><th>Table</th><th>Purpose</th><th>Built-in Chains</th></tr></thead>
+          <tbody>
+            <tr><td>filter</td><td>Default — packet filtering (ACCEPT/DROP)</td><td>INPUT, OUTPUT, FORWARD</td></tr>
+            <tr><td>nat</td><td>Network address translation</td><td>PREROUTING, OUTPUT, POSTROUTING</td></tr>
+            <tr><td>mangle</td><td>Modify packet headers (TOS, TTL)</td><td>All 5 chains</td></tr>
+            <tr><td>raw</td><td>Connection tracking exemptions</td><td>PREROUTING, OUTPUT</td></tr>
+          </tbody>
+        </table>
+
+        <h3 class="sub-title">Common Targets</h3>
+        <div class="cmd-grid">
+          <div class="cmd-card"><div class="cmd-card-title">ACCEPT</div><div class="cmd-card-desc">Allow the packet through</div></div>
+          <div class="cmd-card"><div class="cmd-card-title">DROP</div><div class="cmd-card-desc">Silently discard — no response to sender</div></div>
+          <div class="cmd-card"><div class="cmd-card-title">REJECT</div><div class="cmd-card-desc">Discard and send error reply to sender</div></div>
+          <div class="cmd-card"><div class="cmd-card-title">LOG</div><div class="cmd-card-desc">Log packet to syslog then continue</div></div>
+          <div class="cmd-card"><div class="cmd-card-title">MASQUERADE</div><div class="cmd-card-desc">Dynamic SNAT for outgoing traffic</div></div>
+          <div class="cmd-card"><div class="cmd-card-title">DNAT</div><div class="cmd-card-desc">Destination NAT — port forwarding</div></div>
+        </div>
+      </section>
+
+      <!-- RULES -->
+      <section class="content-section" data-section="rules" id="rules">
+        <h2 class="sect-title"><span class="sect-icon">📝</span> Writing Rules</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — iptables rule examples</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># View all rules</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-L -v -n</span> --line-numbers
+<br>
+<span class="comment"># Set default policies (deny all, allow out)</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-P</span> INPUT DROP
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-P</span> FORWARD DROP
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-P</span> OUTPUT ACCEPT
+<br>
+<span class="comment"># Allow established/related connections</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT -m conntrack \
+    --ctstate ESTABLISHED,RELATED <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># Allow loopback</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT <span class="flag">-i</span> lo <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># Allow SSH (port 22)</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT <span class="flag">-p</span> tcp <span class="flag">--dport</span> 22 <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># Allow HTTP and HTTPS</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT <span class="flag">-p</span> tcp <span class="flag">-m multiport --dports</span> 80,443 <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># Allow ICMP (ping)</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT <span class="flag">-p</span> icmp <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># Block specific IP</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT <span class="flag">-s</span> 203.0.113.5 <span class="flag">-j</span> DROP
+<br>
+<span class="comment"># Rate-limit SSH (anti-brute-force)</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> INPUT <span class="flag">-p</span> tcp <span class="flag">--dport</span> 22 \
+    -m limit <span class="flag">--limit</span> 3/min <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># Delete rule by line number</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-D</span> INPUT 5
+<br>
+<span class="comment"># Flush all rules in filter table</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-F</span>
+          </div>
+        </div>
+
+        <div class="info-box danger">
+          <div class="info-box-icon">🚨</div>
+          <div class="info-box-body">
+            <div class="info-box-title">Don't lock yourself out!</div>
+            <div class="info-box-text">Always allow your current SSH session (port 22) before setting INPUT policy to DROP. Work on a physical machine or via console when first configuring firewall rules.</div>
+          </div>
+        </div>
+
+        <!-- DUAL IPTABLES & NFTABLES RULE CONVERTER STUDIO -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>🔄 Dual Firewall Rule Studio: iptables ⟷ nftables</span>
+              <span class="live-badge"><span class="live-dot"></span> REALTIME TRANSLATOR</span>
+            </div>
+            <span class="chip">Modern Migration Tool</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">Modern Linux distributions are phasing out legacy iptables in favor of nftables. Design your packet filtering rule below and see both syntaxes generated live.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+              <div>
+                <label class="studio-label" for="ipst-chain">Netfilter Chain</label>
+                <select id="ipst-chain" class="studio-select">
+                  <option value="INPUT">INPUT (Local Inbound)</option>
+                  <option value="OUTPUT">OUTPUT (Local Outbound)</option>
+                  <option value="FORWARD">FORWARD (Routing Through)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-proto">Protocol</label>
+                <select id="ipst-proto" class="studio-select">
+                  <option value="tcp">TCP (Reliable Stream)</option>
+                  <option value="udp">UDP (Datagram)</option>
+                  <option value="icmp">ICMP (Ping / Diagnostics)</option>
+                </select>
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-port">Port Number</label>
+                <input type="text" id="ipst-port" class="studio-input" value="22" placeholder="e.g. 22, 80, 443" />
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-src">Source Subnet</label>
+                <input type="text" id="ipst-src" class="studio-input" value="192.168.1.0/24" placeholder="e.g. 192.168.1.0/24 or any" />
+              </div>
+              <div>
+                <label class="studio-label" for="ipst-action">Action Target</label>
+                <select id="ipst-action" class="studio-select">
+                  <option value="ACCEPT">ACCEPT (Allow)</option>
+                  <option value="DROP">DROP (Silent Discard)</option>
+                  <option value="REJECT">REJECT (Send Error)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="widget-studio-split">
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.4rem;">🔥 Classic iptables Command</div>
+                <div class="studio-code-box" id="ipst-out-iptables"></div>
+              </div>
+              <div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--green);margin-bottom:0.4rem;">⚡ Modern nftables Rule</div>
+                <div class="studio-code-box" id="ipst-out-nft"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NAT -->
+      <section class="content-section" data-section="nat" id="nat">
+        <h2 class="sect-title"><span class="sect-icon">🔄</span> NAT, Masquerading & Connection Tracking</h2>
+        <p class="body-text">NAT allows a Linux machine to act as a router/gateway, sharing internet access or forwarding ports. The kernel's <strong>conntrack</strong> subsystem tracks stateful bi-directional streams.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — NAT & port forwarding</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Enable IP forwarding first</span>
+<span class="prompt">$ </span><span class="cmd">sudo sysctl</span> -w net.ipv4.ip_forward=1
+<br>
+<span class="comment"># MASQUERADE: share internet (ens3 = WAN interface)</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-t</span> nat <span class="flag">-A</span> POSTROUTING \
+    <span class="flag">-o</span> ens3 <span class="flag">-j</span> MASQUERADE
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> FORWARD <span class="flag">-i</span> eth1 <span class="flag">-o</span> ens3 <span class="flag">-j</span> ACCEPT
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-A</span> FORWARD -m conntrack \
+    --ctstate RELATED,ESTABLISHED <span class="flag">-j</span> ACCEPT
+<br>
+<span class="comment"># DNAT: port forward 80 → internal server 10.0.0.10:8080</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables</span> <span class="flag">-t</span> nat <span class="flag">-A</span> PREROUTING \
+    <span class="flag">-p</span> tcp <span class="flag">--dport</span> 80 \
+    <span class="flag">-j</span> DNAT <span class="flag">--to-destination</span> 10.0.0.10:8080
+          </div>
+        </div>
+
+        <!-- REALTIME CONNTRACK INSPECTOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>📡 Live Kernel Conntrack Table Inspector</span>
+              <span class="live-badge"><span class="live-dot"></span> /proc/net/nf_conntrack</span>
+            </div>
+            <span class="chip">Stateful Packet Inspection</span>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem;">Real-time view of active TCP and UDP streams registered in the Linux Netfilter connection tracking table with live countdown timers.</p>
+
+            <div style="overflow-x:auto;">
+              <table class="data-table realtime-table">
+                <thead>
+                  <tr>
+                    <th>Proto</th>
+                    <th>Source IP:Port</th>
+                    <th>Destination IP:Port</th>
+                    <th>Conntrack State</th>
+                    <th>TCP Timeout</th>
+                  </tr>
+                </thead>
+                <tbody id="conntrack-sim-body">
+                  <!-- Filled and updated dynamically by IptablesStudio -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NFTABLES -->
+      <section class="content-section" data-section="nftables" id="nftables">
+        <h2 class="sect-title"><span class="sect-icon">⚡</span> nftables</h2>
+        <p class="body-text">nftables is the modern successor to iptables, with a unified syntax for all address families and better performance.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — nftables basics</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># List all tables and rules</span>
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> list ruleset
+<br>
+<span class="comment"># Create a simple firewall ruleset</span>
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> add table inet filter
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> add chain inet filter input \
+    '{ type filter hook input priority 0; policy drop; }'
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> add rule inet filter input \
+    ct state established,related accept
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> add rule inet filter input \
+    iif lo accept
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> add rule inet filter input \
+    tcp dport 22 accept
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> add rule inet filter input \
+    tcp dport {80, 443} accept
+<br>
+<span class="comment"># Save ruleset to file</span>
+<span class="prompt">$ </span><span class="cmd">sudo nft</span> list ruleset > /etc/nftables.conf
+          </div>
+        </div>
+      </section>
+
+      <!-- SAVE/RESTORE -->
+      <section class="content-section" data-section="save-restore" id="save-restore">
+        <h2 class="sect-title"><span class="sect-icon">💾</span> Save & Restore Rules</h2>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — persistence</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Save current iptables rules</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables-save</span> > /etc/iptables/rules.v4
+<span class="prompt">$ </span><span class="cmd">sudo ip6tables-save</span> > /etc/iptables/rules.v6
+<br>
+<span class="comment"># Restore rules</span>
+<span class="prompt">$ </span><span class="cmd">sudo iptables-restore</span> &lt; /etc/iptables/rules.v4
+<br>
+<span class="comment"># Install iptables-persistent (Debian/Ubuntu)</span>
+<span class="prompt">$ </span><span class="cmd">sudo apt install</span> iptables-persistent
+<span class="prompt">$ </span><span class="cmd">sudo netfilter-persistent</span> save
+<span class="prompt">$ </span><span class="cmd">sudo netfilter-persistent</span> reload
+<br>
+<span class="comment"># On RHEL/CentOS with iptables-services</span>
+<span class="prompt">$ </span><span class="cmd">sudo service</span> iptables save
+<span class="prompt">$ </span><span class="cmd">sudo systemctl</span> enable iptables
+          </div>
+        </div>
+      </section>
+
+      <!-- LAB -->
+      <section class="content-section" data-section="lab" id="lab">
+        <h2 class="sect-title"><span class="sect-icon">🧪</span> Lab Exercise</h2>
+        <div class="lab-box">
+          <div class="lab-header">
+            <div class="lab-icon">🧪</div>
+            <div>
+              <div class="lab-title">Lab 02 — Build a Complete iptables Firewall Policy</div>
+              <div class="lab-subtitle">Estimated time: 20 minutes · Root access required</div>
+            </div>
+          </div>
+          <div class="lab-steps">
+            <div class="lab-step">
+              <div class="lab-step-num">1</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Backup current rules</div>
+                <div class="lab-step-text">Run <code>sudo iptables-save &gt; ~/iptables-backup.txt</code> to save your current rules. You can restore them with <code>iptables-restore</code> if needed.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">2</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Flush existing rules and set policies</div>
+                <div class="lab-step-text">Run <code>sudo iptables -F</code> to flush, then set INPUT and FORWARD to DROP, OUTPUT to ACCEPT.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">3</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Allow essential traffic</div>
+                <div class="lab-step-text">Add rules to allow: loopback, established connections, SSH (22), HTTP (80), HTTPS (443), and ICMP.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">4</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Add logging for dropped packets</div>
+                <div class="lab-step-text">Insert a LOG rule before the DROP policy: <code>iptables -A INPUT -j LOG --log-prefix "DROPPED: " --log-level 4</code></div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">5</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Test the rules</div>
+                <div class="lab-step-text">From another machine, try to connect to SSH (should work), then to a blocked port like 8080 (should be blocked). Check <code>/var/log/syslog</code> for dropped packet logs.</div>
+              </div>
+            </div>
+            <div class="lab-step">
+              <div class="lab-step-num">6</div>
+              <div class="lab-step-body">
+                <div class="lab-step-title">Save and restore rules</div>
+                <div class="lab-step-text">Save rules with <code>iptables-save</code>, then test by flushing and restoring from file.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUIZ -->
+      <section class="content-section" data-section="quiz" id="quiz">
+        <h2 class="sect-title"><span class="sect-icon">❓</span> Knowledge Check</h2>
+        <div class="completion-banner">
+          <div class="completion-banner-icon">🎉</div>
+          <div class="completion-banner-text"><strong>Module Complete!</strong> You scored 80%+ and earned +150 XP!</div>
+        </div>
+        <div class="quiz-box">
+          <div class="quiz-header">
+            <div class="quiz-icon">🧠</div>
+            <div><div class="quiz-title">iptables & nftables Quiz</div><div class="quiz-subtitle">5 questions · +20 XP per correct answer</div></div>
+          </div>
+          <div class="quiz-progress-wrap">
+            <span>Question <span class="q-current">1</span> of <span class="q-total">5</span></span>
+            <span class="q-score">Score: 0</span>
+          </div>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:0%"></div></div>
+          <div class="quiz-question-wrap">
+            <p class="question-text"></p>
+            <ul class="options-list"></ul>
+            <div class="quiz-explanation"></div>
+            <div class="quiz-actions"><button class="btn btn-ghost" id="quiz-next" disabled>Next →</button></div>
+          </div>
+          <div class="quiz-result">
+            <div class="quiz-score-circle" style="--pct:0%"><div class="quiz-score-text">0%</div></div>
+            <div class="quiz-result-title"></div>
+            <div class="quiz-result-sub"></div>
+            <button class="btn btn-secondary" id="quiz-restart">🔄 Try Again</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="lesson-nav">
+        <a href="network-config.html" class="lesson-nav-btn"><span class="nav-icon">←</span><div><span class="nav-dir">Previous</span><span class="nav-label">Network Config</span></div></a>
+        <a href="firewalld.html" class="lesson-nav-btn next"><span class="nav-icon">→</span><div><span class="nav-dir">Next Module</span><span class="nav-label">firewalld</span></div></a>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    <div class="footer-logo">🛡️ Linux<span>Firewall</span></div>
+    <p class="footer-text">Linux System Administration · PBL Project · 2026</p>
+  </footer>
+
+</div>
+<script>
+const quizModuleId = 'iptables';
+const quizData = [
+  {
+    question: "In iptables, which table is used by default when no table is specified with the -t flag?",
+    options: ["nat", "mangle", "filter", "raw"],
+    correct: 2,
+    explanation: "The 'filter' table is the default table in iptables. It contains the INPUT, OUTPUT, and FORWARD chains used for basic packet filtering."
+  },
+  {
+    question: "What is the difference between the DROP and REJECT targets?",
+    options: [
+      "They are identical — just aliases",
+      "DROP silently discards; REJECT sends an error reply to the sender",
+      "REJECT silently discards; DROP sends an error reply",
+      "DROP only works on TCP; REJECT works on all protocols"
+    ],
+    correct: 1,
+    explanation: "DROP silently discards the packet — the sender gets no response (connection times out). REJECT discards it but sends an ICMP error back, so the sender knows the connection was refused immediately."
+  },
+  {
+    question: "Which iptables command adds a rule to the END of the INPUT chain?",
+    options: ["iptables -I INPUT", "iptables -D INPUT", "iptables -A INPUT", "iptables -P INPUT"],
+    correct: 2,
+    explanation: "'-A' appends a rule to the end of the specified chain. '-I' inserts at the beginning (or a specific position), '-D' deletes, and '-P' sets the default policy."
+  },
+  {
+    question: "For iptables rules to persist across reboots on Debian/Ubuntu, which package should you install?",
+    options: ["iptables-reload", "netfilter-persistent / iptables-persistent", "firewalld", "iptables-daemon"],
+    correct: 1,
+    explanation: "The 'iptables-persistent' (or 'netfilter-persistent') package saves rules to /etc/iptables/rules.v4 and loads them automatically on boot."
+  },
+  {
+    question: "Which nftables address family handles both IPv4 and IPv6 in a single ruleset?",
+    options: ["ip", "ip6", "inet", "bridge"],
+    correct: 2,
+    explanation: "The 'inet' family in nftables covers both IPv4 (ip) and IPv6 (ip6), allowing you to write unified rules that apply to both protocol versions."
+  }
+];
+</script>
+<script src="../scripts/app.js"></script>
+</body>
+</html>

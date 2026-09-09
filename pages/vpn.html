@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPN & Tunneling — LinuxFirewall</title>
+  <meta name="description" content="Learn VPN and tunneling on Linux: WireGuard, OpenVPN, SSH tunneling, and GRE tunnels." />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="wrapper">
+
+  <nav>
+    <a href="../index.html" class="nav-logo"><div class="nav-logo-icon">🛡️</div>Linux<span>Firewall</span></a>
+    <ul class="nav-links">
+      <li><a href="../index.html">🏠 Home</a></li>
+      <li><a href="network-config.html">🌐 Network</a></li>
+      <li><a href="iptables.html">🔥 iptables</a></li>
+      <li><a href="firewalld.html">🛡️ firewalld</a></li>
+      <li><a href="ufw.html">🔒 UFW</a></li>
+      <li><a href="monitoring.html">📡 Monitor</a></li>
+      <li><a href="vpn.html" class="active">🔑 VPN</a></li>
+      <li><a href="hardening.html">⚔️ Harden</a></li>
+    </ul>
+    <div class="nav-progress"><span class="xp-badge">⚡ 0 XP</span></div>
+    <div class="hamburger"><span></span><span></span><span></span></div>
+  </nav>
+
+  <div class="lesson-layout">
+    <aside class="lesson-sidebar">
+      <div class="sidebar-title">Module 06</div>
+      <ul class="sidebar-nav">
+        <li><a href="#overview" class="active">📌 Overview</a></li>
+        <li><a href="#wireguard">⚡ WireGuard</a></li>
+        <li><a href="#openvpn">🔒 OpenVPN</a></li>
+        <li><a href="#ssh-tunnel">🚇 SSH Tunneling</a></li>
+        <li><a href="#gre">🌐 GRE Tunnels</a></li>
+        <li><a href="#lab">🧪 Lab Exercise</a></li>
+        <li><a href="#quiz">❓ Quiz</a></li>
+      </ul>
+    </aside>
+
+    <main class="lesson-main">
+      <div class="lesson-breadcrumb">
+        <a href="../index.html">Home</a><span class="sep">›</span><span>Module 06 — VPN & Tunneling</span>
+      </div>
+
+      <header class="lesson-header">
+        <div class="lesson-module-badge">🔑 Module 06 of 07</div>
+        <h1 class="lesson-title">VPN & <span>Tunneling</span></h1>
+        <p class="lesson-intro">Virtual Private Networks create encrypted tunnels across untrusted networks. Linux supports multiple VPN technologies. We cover WireGuard (modern, fast), OpenVPN (battle-tested), and SSH tunnels (quick & easy).</p>
+        <div class="lesson-meta-row">
+          <span class="meta-item">🕐 <strong>~70 min</strong></span>
+          <span class="meta-item">🎯 <strong>Advanced</strong></span>
+          <span class="meta-item">📝 <strong>5 Quiz Questions</strong></span>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section class="content-section" data-section="overview" id="overview">
+        <h2 class="sect-title"><span class="sect-icon">📌</span> Overview</h2>
+        <table class="data-table">
+          <thead><tr><th>VPN Technology</th><th>Protocol</th><th>Speed</th><th>Use Case</th></tr></thead>
+          <tbody>
+            <tr><td>WireGuard</td><td>UDP/51820</td><td>⚡ Very Fast</td><td>Modern, simple VPN</td></tr>
+            <tr><td>OpenVPN</td><td>UDP/1194 or TCP/443</td><td>🔵 Fast</td><td>Enterprise, complex setups</td></tr>
+            <tr><td>SSH Tunnel</td><td>TCP/22</td><td>🟢 Medium</td><td>Quick port forwarding</td></tr>
+            <tr><td>IPsec</td><td>ESP/AH</td><td>🟡 Medium</td><td>Site-to-site enterprise</td></tr>
+            <tr><td>GRE</td><td>IP Protocol 47</td><td>🔵 Fast</td><td>Unencrypted tunneling</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- WIREGUARD -->
+      <section class="content-section" data-section="wireguard" id="wireguard">
+        <h2 class="sect-title"><span class="sect-icon">⚡</span> WireGuard</h2>
+        <p class="body-text">WireGuard is a modern, extremely fast VPN protocol implemented in the Linux kernel. It uses state-of-the-art cryptography and is much simpler to configure than OpenVPN or IPsec.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — WireGuard server setup</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Install WireGuard</span>
+<span class="prompt">$ </span><span class="cmd">sudo apt install</span> wireguard  <span class="comment"># Debian/Ubuntu</span>
+<span class="prompt">$ </span><span class="cmd">sudo dnf install</span> wireguard-tools  <span class="comment"># RHEL/Fedora</span>
+<br>
+<span class="comment"># Generate server key pair</span>
+<span class="prompt">$ </span><span class="cmd">wg genkey</span> | sudo tee /etc/wireguard/server_private.key
+<span class="prompt">$ </span><span class="cmd">sudo cat</span> /etc/wireguard/server_private.key | \
+    wg pubkey | sudo tee /etc/wireguard/server_public.key
+<br>
+<span class="comment"># Generate client key pair</span>
+<span class="prompt">$ </span><span class="cmd">wg genkey</span> | tee client_private.key | wg pubkey > client_public.key
+<br>
+<span class="comment"># Create server config /etc/wireguard/wg0.conf</span>
+<span class="prompt">$ </span><span class="cmd">sudo tee</span> /etc/wireguard/wg0.conf &lt;&lt; 'EOF'
+<span class="output">[Interface]</span>
+<span class="output">Address = 10.0.0.1/24</span>
+<span class="output">ListenPort = 51820</span>
+<span class="output">PrivateKey = &lt;SERVER_PRIVATE_KEY&gt;</span>
+<span class="output">PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ens3 -j MASQUERADE</span>
+<span class="output">PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ens3 -j MASQUERADE</span>
+<span class="output"></span>
+<span class="output">[Peer]</span>
+<span class="output">PublicKey = &lt;CLIENT_PUBLIC_KEY&gt;</span>
+<span class="output">AllowedIPs = 10.0.0.2/32</span>
+<span class="output">EOF</span>
+<br>
+<span class="comment"># Start WireGuard interface</span>
+<span class="prompt">$ </span><span class="cmd">sudo wg-quick</span> up wg0
+<span class="prompt">$ </span><span class="cmd">sudo systemctl</span> enable wg-quick@wg0
+<br>
+<span class="comment"># Check WireGuard status</span>
+<span class="prompt">$ </span><span class="cmd">sudo wg</span> show
+          </div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — WireGuard client config</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Client config file</span>
+<span class="output">[Interface]</span>
+<span class="output">Address = 10.0.0.2/24</span>
+<span class="output">PrivateKey = &lt;CLIENT_PRIVATE_KEY&gt;</span>
+<span class="output">DNS = 1.1.1.1</span>
+<span class="output"></span>
+<span class="output">[Peer]</span>
+<span class="output">PublicKey = &lt;SERVER_PUBLIC_KEY&gt;</span>
+<span class="output">Endpoint = server.example.com:51820</span>
+<span class="output">AllowedIPs = 0.0.0.0/0   # Route all traffic through VPN</span>
+<span class="output">PersistentKeepalive = 25</span>
+          </div>
+        </div>
+
+        <!-- PAIRED WIREGUARD DUAL CONFIG GENERATOR -->
+        <div class="widget-studio">
+          <div class="widget-studio-header">
+            <div class="widget-studio-title">
+              <span>⚡ Live Paired WireGuard Key & Dual-Config Generator</span>
+              <span class="live-badge"><span class="live-dot"></span> CURVE25519</span>
+            </div>
+            <button class="btn btn-primary" id="btn-wg-generate" style="padding:0.45rem 1rem;font-size:0.8rem;">🔑 Regenerate Full Keypair Set</button>
+          </div>
+          <div class="widget-studio-body">
+            <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">WireGuard requires exchanging public keys between server and client. Generate matching cryptographic keypairs and valid ready-to-use configuration files for both endpoints simultaneously.</p>
+
+            <div class="vpn-config-split">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                  <strong style="color:var(--cyan);font-size:0.85rem;">Server Config (/etc/wireguard/wg0.conf)</strong>
+                  <span class="chip">Endpoint :51820</span>
+                </div>
+                <div class="studio-code-box" id="wg-server-output" style="height:220px;"></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                  <strong style="color:var(--green);font-size:0.85rem;">Client Config (/etc/wireguard/client1.conf)</strong>
+                  <span class="chip">Tunnel 10.0.0.2</span>
+                </div>
+                <div class="studio-code-box" id="wg-client-output" style="height:220px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OPENVPN -->
+      <section class="content-section" data-section="openvpn" id="openvpn">
+        <h2 class="sect-title"><span class="sect-icon">🔒</span> OpenVPN</h2>
+        <p class="body-text">OpenVPN is a mature, feature-rich VPN solution using TLS/SSL for encryption. It uses a certificate authority (CA) and client certificates.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — OpenVPN quick start</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Install OpenVPN and Easy-RSA</span>
+<span class="prompt">$ </span><span class="cmd">sudo apt install</span> openvpn easy-rsa
+<br>
+<span class="comment"># Initialize PKI with Easy-RSA</span>
+<span class="prompt">$ </span><span class="cmd">make-cadir</span> ~/openvpn-ca
+<span class="prompt">$ </span><span class="cmd">cd</span> ~/openvpn-ca
+<span class="prompt">$ </span><span class="cmd">./easyrsa</span> init-pki
+<span class="prompt">$ </span><span class="cmd">./easyrsa</span> build-ca nopass
+<br>
+<span class="comment"># Generate server certificate</span>
+<span class="prompt">$ </span><span class="cmd">./easyrsa</span> gen-req server nopass
+<span class="prompt">$ </span><span class="cmd">./easyrsa</span> sign-req server server
+<br>
+<span class="comment"># Generate Diffie-Hellman parameters</span>
+<span class="prompt">$ </span><span class="cmd">./easyrsa</span> gen-dh
+<br>
+<span class="comment"># Start OpenVPN with config file</span>
+<span class="prompt">$ </span><span class="cmd">sudo openvpn</span> --config /etc/openvpn/server.conf
+<span class="prompt">$ </span><span class="cmd">sudo systemctl</span> start openvpn@server
+<span class="prompt">$ </span><span class="cmd">sudo systemctl</span> enable openvpn@server
+          </div>
+        </div>
+      </section>
+
+      <!-- SSH TUNNEL -->
+      <section class="content-section" data-section="ssh-tunnel" id="ssh-tunnel">
+        <h2 class="sect-title"><span class="sect-icon">🚇</span> SSH Tunneling Architectures</h2>
+        <p class="body-text">SSH tunnels are the fastest, zero-install way to forward ports, encrypt insecure legacy protocols, and bypass restrictive firewalls using an existing SSH shell session.</p>
+
+        <!-- Visual Architecture Diagram -->
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 740 180" style="max-width:100%;height:auto;font-family:var(--font-mono);font-size:12px;">
+            <!-- Client Box -->
+            <rect x="20" y="30" width="160" height="120" rx="8" fill="#080f22" stroke="#00e5ff" stroke-width="1.5" />
+            <text x="100" y="60" fill="#00e5ff" text-anchor="middle" font-weight="bold">Local Client</text>
+            <text x="100" y="85" fill="#8a9bc5" text-anchor="middle" font-size="11">App (localhost:8080)</text>
+            <text x="100" y="115" fill="#ffd32a" text-anchor="middle" font-size="10">ssh -L 8080:db:3306</text>
+
+            <!-- Encrypted Tunnel Line -->
+            <path d="M 180 90 L 360 90" stroke="#9b59ff" stroke-width="3" stroke-dasharray="6,4" />
+            <circle cx="270" cy="90" r="14" fill="#050b18" stroke="#9b59ff" />
+            <text x="270" y="94" fill="#9b59ff" text-anchor="middle" font-size="10">🔒 TLS</text>
+            <text x="270" y="125" fill="#8a9bc5" text-anchor="middle" font-size="10">Port 22 SSH Stream</text>
+
+            <!-- Jump / Remote Server -->
+            <rect x="360" y="30" width="160" height="120" rx="8" fill="#080f22" stroke="#3d8bff" stroke-width="1.5" />
+            <text x="440" y="60" fill="#3d8bff" text-anchor="middle" font-weight="bold">SSH Bastion Server</text>
+            <text x="440" y="85" fill="#8a9bc5" text-anchor="middle" font-size="11">sshd listener (:22)</text>
+            <text x="440" y="115" fill="#00ffa3" text-anchor="middle" font-size="10">Gateway / Jump Host</text>
+
+            <!-- Unencrypted LAN link to Internal Target -->
+            <path d="M 520 90 L 590 90" stroke="#00ffa3" stroke-width="2" />
+            <polygon points="590,90 580,85 580,95" fill="#00ffa3" />
+
+            <!-- Target Internal Resource -->
+            <rect x="590" y="45" width="130" height="90" rx="6" fill="#040914" stroke="#00ffa3" stroke-width="1.5" />
+            <text x="655" y="75" fill="#00ffa3" text-anchor="middle" font-weight="bold">Internal DB</text>
+            <text x="655" y="95" fill="#8a9bc5" text-anchor="middle" font-size="11">MySQL :3306</text>
+            <text x="655" y="115" fill="#ff5757" text-anchor="middle" font-size="9">Private Network</text>
+          </svg>
+        </div>
+
+        <div class="cmd-grid">
+          <div class="cmd-card">
+            <div class="cmd-card-title">Local Port Forwarding (-L)</div>
+            <div class="cmd-card-desc">Forward local client port to remote internal target via SSH bastion</div>
+            <div class="cmd-card-syntax">ssh -L 8080:internal-db:3306 user@bastion-host</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">Remote Port Forwarding (-R)</div>
+            <div class="cmd-card-desc">Expose a local port on the remote public server (reverse proxy)</div>
+            <div class="cmd-card-syntax">ssh -R 9000:localhost:3000 user@cloud-vps</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">Dynamic SOCKS5 Proxy (-D)</div>
+            <div class="cmd-card-desc">Create a dynamic encrypted SOCKS5 proxy for browser &amp; curl</div>
+            <div class="cmd-card-syntax">ssh -D 1080 -f -N user@remote-gateway</div>
+          </div>
+          <div class="cmd-card">
+            <div class="cmd-card-title">Persistent Daemon Tunnel</div>
+            <div class="cmd-card-desc">Run in background without opening an interactive shell session</div>
+            <div class="cmd-card-syntax">ssh -fN -o ServerAliveInterval=30 -L 5432:db:5432 user@jump</div>
+          </div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — SSH tunnel examples</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Access a remote DB (MySQL on port 3306) locally on 13306</span>
+<span class="prompt">$ </span><span class="cmd">ssh</span> <span class="flag">-L 13306:db-server:3306</span> user@jump-server
+<span class="comment"># Now connect: mysql -h 127.0.0.1 -P 13306</span>
+<br>
+<span class="comment"># SOCKS5 proxy — route browser traffic through server</span>
+<span class="prompt">$ </span><span class="cmd">ssh</span> <span class="flag">-D 1080 -f -N</span> user@remote-server
+<span class="comment"># Configure browser to use SOCKS5 proxy at 127.0.0.1:1080</span>
+<br>
+<span class="comment"># Jump host (bastion) to reach internal server</span>
+<span class="prompt">$ </span><span class="cmd">ssh</span> <span class="flag">-J</span> user@bastion user@internal-server
+          </div>
+        </div>
+      </section>
+
+      <!-- GRE -->
+      <section class="content-section" data-section="gre" id="gre">
+        <h2 class="sect-title"><span class="sect-icon">🌐</span> GRE Tunnels</h2>
+        <p class="body-text">GRE (Generic Routing Encapsulation) creates a point-to-point tunnel between two hosts. Note: GRE provides no encryption — combine with IPsec for security.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+            <span class="terminal-label">bash — GRE tunnel setup</span>
+            <button class="terminal-copy">copy</button>
+          </div>
+          <div class="terminal-body">
+<span class="comment"># Load GRE kernel module</span>
+<span class="prompt">$ </span><span class="cmd">sudo modprobe</span> ip_gre
+<br>
+<span class="comment"># Create GRE tunnel interface</span>
+<span class="comment"># Server A: 192.168.1.10 | Server B: 192.168.2.10</span>
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> tunnel add gre1 mode gre \
+    remote <span class="arg">192.168.2.10</span> \
+    local <span class="arg">192.168.1.10</span> \
+    ttl 255
+<br>
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> link set gre1 up
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> addr add <span class="arg">10.10.10.1/30</span> dev gre1
+<br>
+<span class="comment"># Add route for remote network through tunnel</span>
+<span class="prompt">$ </span><span class="cmd">sudo ip</span> route add 10.10.10.0/30 dev gre1
+<br>
+<span class="comment"># Verify tunnel</span>
+<span class="prompt">$ </span><span class="cmd">ip</span> tunnel show
+<span class="prompt">$ </span><span class="cmd">ping</span> 10.10.10.2  <span class="comment"># Ping remote end of tunnel</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- LAB -->
+      <section class="content-section" data-section="lab" id="lab">
+        <h2 class="sect-title"><span class="sect-icon">🧪</span> Lab Exercise</h2>
+        <div class="lab-box">
+          <div class="lab-header">
+            <div class="lab-icon">🧪</div>
+            <div>
+              <div class="lab-title">Lab 06 — Set Up a WireGuard Peer-to-Peer VPN</div>
+              <div class="lab-subtitle">Estimated time: 25 minutes · Requires 2 Linux machines/VMs</div>
+            </div>
+          </div>
+          <div class="lab-steps">
+            <div class="lab-step"><div class="lab-step-num">1</div><div class="lab-step-body"><div class="lab-step-title">Install WireGuard on both machines</div><div class="lab-step-text">Run <code>sudo apt install wireguard</code> (or equivalent) on both the server and client.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">2</div><div class="lab-step-body"><div class="lab-step-title">Generate key pairs</div><div class="lab-step-text">On each machine, generate a private key with <code>wg genkey</code> and derive the public key with <code>wg pubkey</code>.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">3</div><div class="lab-step-body"><div class="lab-step-title">Create configuration files</div><div class="lab-step-text">Write <code>/etc/wireguard/wg0.conf</code> on both machines. Server listens on 51820; client connects to server's public IP.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">4</div><div class="lab-step-body"><div class="lab-step-title">Bring up the interface</div><div class="lab-step-text">Run <code>sudo wg-quick up wg0</code> on both machines. Check status with <code>sudo wg show</code>.</div></div></div>
+            <div class="lab-step"><div class="lab-step-num">5</div><div class="lab-step-body"><div class="lab-step-title">Test the tunnel</div><div class="lab-step-text">Ping the peer's WireGuard IP (e.g., 10.0.0.1 from the client). You should see successful replies through the encrypted tunnel.</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUIZ -->
+      <section class="content-section" data-section="quiz" id="quiz">
+        <h2 class="sect-title"><span class="sect-icon">❓</span> Knowledge Check</h2>
+        <div class="completion-banner">
+          <div class="completion-banner-icon">🎉</div>
+          <div class="completion-banner-text"><strong>Module Complete!</strong> You scored 80%+ and earned +150 XP!</div>
+        </div>
+        <div class="quiz-box">
+          <div class="quiz-header">
+            <div class="quiz-icon">🧠</div>
+            <div><div class="quiz-title">VPN & Tunneling Quiz</div><div class="quiz-subtitle">5 questions · +20 XP per correct answer</div></div>
+          </div>
+          <div class="quiz-progress-wrap">
+            <span>Question <span class="q-current">1</span> of <span class="q-total">5</span></span>
+          </div>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:0%"></div></div>
+          <div class="quiz-question-wrap">
+            <p class="question-text"></p>
+            <ul class="options-list"></ul>
+            <div class="quiz-explanation"></div>
+            <div class="quiz-actions"><button class="btn btn-ghost" id="quiz-next" disabled>Next →</button></div>
+          </div>
+          <div class="quiz-result">
+            <div class="quiz-score-circle" style="--pct:0%"><div class="quiz-score-text">0%</div></div>
+            <div class="quiz-result-title"></div><div class="quiz-result-sub"></div>
+            <button class="btn btn-secondary" id="quiz-restart">🔄 Try Again</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="lesson-nav">
+        <a href="monitoring.html" class="lesson-nav-btn"><span class="nav-icon">←</span><div><span class="nav-dir">Previous</span><span class="nav-label">Network Monitoring</span></div></a>
+        <a href="hardening.html" class="lesson-nav-btn next"><span class="nav-icon">→</span><div><span class="nav-dir">Next Module</span><span class="nav-label">Security Hardening</span></div></a>
+      </div>
+    </main>
+  </div>
+
+  <footer><div class="footer-logo">🛡️ Linux<span>Firewall</span></div><p class="footer-text">Linux System Administration · PBL Project · 2026</p></footer>
+</div>
+<script>
+const quizModuleId = 'vpn';
+const quizData = [
+  {
+    question: "What is the default UDP port that WireGuard listens on?",
+    options: ["1194", "4500", "51820", "500"],
+    correct: 2,
+    explanation: "WireGuard uses UDP port 51820 by default. Unlike OpenVPN (UDP/1194) and IPsec (UDP/500, 4500), WireGuard exclusively uses UDP for all communication."
+  },
+  {
+    question: "Which SSH flag creates a local port forward (listening locally, connecting remotely)?",
+    options: ["-D", "-R", "-L", "-J"],
+    correct: 2,
+    explanation: "'-L local_port:remote_host:remote_port' creates a local port forward. Traffic sent to the local port is forwarded through the SSH server to the remote host. '-R' does the reverse (remote→local)."
+  },
+  {
+    question: "What is a major security limitation of GRE tunnels?",
+    options: [
+      "They only support IPv4",
+      "They provide no encryption",
+      "They require root access",
+      "They cannot route multiple subnets"
+    ],
+    correct: 1,
+    explanation: "GRE (Generic Routing Encapsulation) creates a tunnel but provides NO encryption. Traffic within a GRE tunnel travels in plaintext. For security, GRE is typically combined with IPsec."
+  },
+  {
+    question: "In WireGuard, what does 'AllowedIPs = 0.0.0.0/0' in a client's Peer section mean?",
+    options: [
+      "Allow all peers to connect",
+      "Block all traffic",
+      "Route ALL client traffic through the VPN tunnel",
+      "Allow only the server's IP"
+    ],
+    correct: 2,
+    explanation: "AllowedIPs = 0.0.0.0/0 configures WireGuard to route ALL outbound traffic from the client through the VPN tunnel — essentially making it a full VPN (like a traditional VPN). Use a specific subnet for split-tunnel."
+  },
+  {
+    question: "Which SSH flag creates a SOCKS5 proxy, routing traffic dynamically through the SSH server?",
+    options: ["-L", "-R", "-D", "-N"],
+    correct: 2,
+    explanation: "'-D port' creates a dynamic SOCKS5 proxy. Applications configured to use this SOCKS proxy will tunnel their traffic through the SSH server. Useful for browsing through a remote server."
+  }
+];
+</script>
+<script src="../scripts/app.js"></script>
+</body>
+</html>
