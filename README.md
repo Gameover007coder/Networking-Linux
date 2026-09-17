@@ -173,7 +173,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## 👤 Author
 
 **Gameover007coder**
-GitHub: [@Gameover007coder](https://github.com/Gameover007coder)
+GitHub: [Ujjawal Singh](https://ujjawalsingh.ujjawal-singh.workers.dev/)
 
 ---
 
